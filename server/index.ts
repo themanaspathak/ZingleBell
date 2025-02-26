@@ -3,13 +3,17 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import authRouter from "./routes/auth";
 import { ensureAdminUser } from "./services/auth";
+import { requireAuth } from "./middleware/auth";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Register auth routes
+// Register auth routes first
 app.use("/api", authRouter);
+
+// Protect /kitchen route
+app.use("/kitchen", requireAuth);
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticateUser, hashPassword } from "../services/auth";
+import { authenticateUser, hashPassword, createPasswordResetToken, resetPassword } from "../services/auth";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -7,6 +7,7 @@ import session from "express-session";
 import { z } from "zod";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "../db";
+import { requireAuth, requireAdmin } from "../middleware/auth";
 
 const router = Router();
 const PgSession = connectPgSimple(session);
@@ -42,6 +43,52 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+const resetRequestSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+// Password reset request endpoint
+router.post("/admin/request-reset", async (req, res) => {
+  try {
+    const { email } = resetRequestSchema.parse(req.body);
+    await createPasswordResetToken(email);
+    res.json({ message: "If an account exists with this email, a reset link will be sent." });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.errors[0].message });
+    }
+    res.status(500).json({ message: "Failed to process reset request" });
+  }
+});
+
+// Reset password endpoint
+router.post("/admin/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = resetPasswordSchema.parse(req.body);
+    await resetPassword(token, newPassword);
+    res.json({ message: "Password reset successful" });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.errors[0].message });
+    }
+    if (error instanceof Error) {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: "Failed to reset password" });
+  }
+});
+
+// Protected kitchen route
+router.get("/kitchen", requireAuth, (req, res) => {
+  res.json({ message: "Kitchen access granted" });
+});
+
+// Rest of the existing routes...
 router.post("/admin/login", async (req, res) => {
   console.log("Login attempt for email:", req.body.email);
 
@@ -57,7 +104,6 @@ router.post("/admin/login", async (req, res) => {
       return res.status(403).json({ message: "Access denied: Admin privileges required" });
     }
 
-    // Set user session
     req.session.userId = user.id;
     console.log("Session set for user:", user.id);
 

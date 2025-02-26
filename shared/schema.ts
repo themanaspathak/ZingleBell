@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   fullName: text("full_name"),
   password: text("password").notNull(),
   isAdmin: boolean("is_admin").notNull().default(false),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -215,7 +217,7 @@ export const MOCK_MENU_ITEMS: MenuItem[] = [
     price: 349.00,
     category: "South Indian",
     subcategory: "Veg", //Added Subcategory
-    imageUrl: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc",
+    imageUrl: "https://images.unsplash.com/photo-1589301841844-1cf2d77f9b36",
     isVegetarian: true,
     isBestSeller: false,
     isAvailable: true,
