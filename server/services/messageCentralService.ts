@@ -1,16 +1,32 @@
 import request from 'request';
 
-if (!process.env.MESSAGE_CENTRAL_AUTH_TOKEN) {
-  throw new Error("MESSAGE_CENTRAL_AUTH_TOKEN environment variable must be set");
-}
-
 // Store verification IDs temporarily (in production, use Redis or similar)
 const verificationStore = new Map<string, { verificationId: string; expires: Date }>();
+
+// Mock OTP for development
+const MOCK_OTP = '123456';
 
 export async function sendOTP(mobileNumber: string): Promise<{
   success: boolean;
   message: string;
 }> {
+  // If no auth token is present, use mock implementation
+  if (!process.env.MESSAGE_CENTRAL_AUTH_TOKEN) {
+    console.log('⚠️ Running in development mode - using mock OTP service');
+    console.log(`📱 Mock OTP ${MOCK_OTP} for ${mobileNumber}`);
+
+    // Store mock verification data
+    verificationStore.set(mobileNumber, {
+      verificationId: 'mock-verification-id',
+      expires: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes expiry
+    });
+
+    return {
+      success: true,
+      message: "Development mode: Mock OTP sent successfully"
+    };
+  }
+
   try {
     console.log(`📤 Attempting to send OTP to ${mobileNumber}`);
 
@@ -46,7 +62,6 @@ export async function sendOTP(mobileNumber: string): Promise<{
             timestamp: new Date().toISOString()
           });
 
-          // Store the verification ID
           verificationStore.set(mobileNumber, {
             verificationId: responseData.data.verificationId,
             expires: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes expiry
@@ -85,6 +100,27 @@ export async function verifyOTP(mobileNumber: string, otp: string): Promise<{
   success: boolean;
   message: string;
 }> {
+  // If no auth token is present, use mock implementation
+  if (!process.env.MESSAGE_CENTRAL_AUTH_TOKEN) {
+    console.log('⚠️ Running in development mode - using mock OTP verification');
+
+    const storedData = verificationStore.get(mobileNumber);
+    if (!storedData) {
+      return {
+        success: false,
+        message: "Verification session expired. Please request a new OTP.",
+      };
+    }
+
+    const isValid = otp === MOCK_OTP;
+    verificationStore.delete(mobileNumber); // Clear verification data after attempt
+
+    return {
+      success: isValid,
+      message: isValid ? "OTP verified successfully" : "Invalid OTP. Please try again.",
+    };
+  }
+
   try {
     console.log(`🔍 Verifying OTP for ${mobileNumber}`, { 
       receivedOtp: otp,
