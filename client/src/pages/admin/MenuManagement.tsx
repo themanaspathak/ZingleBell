@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MenuItem } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +55,7 @@ const menuItemSchema = z.object({
   }),
   isVegetarian: z.boolean().default(false),
   category: z.string().min(1, "Category is required"),
-  subcategory: z.string().optional(),
+  subcategory: z.string().optional(), //Added subcategory field
   imageUrl: z.string().min(1, "Image URL is required").url("Must be a valid URL"),
   isBestSeller: z.boolean().default(false),
   isAvailable: z.boolean().default(true),
@@ -95,14 +95,16 @@ export default function MenuManagement() {
     },
   });
 
-  const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
+  const { data: menuItems, isLoading, error, refetch } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu"],
     refetchOnWindowFocus: false,
+    staleTime: 0,
   });
 
-  const menuMutation = useMutation({
-    mutationFn: async (data: MenuItemFormData) => {
-      if (!data) throw new Error("No data provided");
+  const handleSubmit = async (data: MenuItemFormData) => {
+    try {
+      setIsSubmitting(true);
+      console.log("Submitting menu item:", data);
 
       const payload = {
         ...data,
@@ -112,47 +114,31 @@ export default function MenuManagement() {
       const endpoint = editingItem ? `/api/menu/${editingItem.id}` : "/api/menu";
       const method = editingItem ? "PATCH" : "POST";
 
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+      const response = await apiRequest(endpoint, method, payload);
+      console.log("Submit response:", response);
+
+      await refetch();
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/menu"],
+        exact: true,
+        refetchType: 'all'
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || `Failed to ${editingItem ? 'update' : 'create'} menu item`);
-      }
-
-      const result = await response.json();
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
       toast({
         title: `Menu Item ${editingItem ? "Updated" : "Added"}`,
-        description: `Successfully ${editingItem ? "updated" : "added"} ${form.getValues("name")}`,
+        description: `Successfully ${editingItem ? "updated" : "added"} ${data.name}`,
       });
+
       setIsAddDialogOpen(false);
       setEditingItem(null);
       form.reset();
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error("Error submitting menu item:", error);
       toast({
         title: "Error",
-        description: error.message || `Failed to ${editingItem ? "update" : "add"} menu item`,
+        description: `Failed to ${editingItem ? "update" : "add"} menu item. Please try again.`,
         variant: "destructive",
       });
-    }
-  });
-
-  const handleSubmit = async (data: MenuItemFormData) => {
-    try {
-      setIsSubmitting(true);
-      await menuMutation.mutateAsync(data);
-    } catch (error) {
-      console.error("Error in handleSubmit:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -163,22 +149,27 @@ export default function MenuManagement() {
 
     try {
       setIsSubmitting(true);
+      console.log("Deleting menu item:", id);
+
       const response = await apiRequest(`/api/menu/${id}`, "DELETE");
+      console.log("Delete response:", response);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to delete menu item");
-      }
+      await refetch();
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/menu"],
+        exact: true,
+        refetchType: 'all'
+      });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
       toast({
         title: "Menu Item Deleted",
         description: "Successfully deleted menu item",
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete menu item",
+        description: "Failed to delete menu item. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -194,7 +185,7 @@ export default function MenuManagement() {
       price: item.price.toString(),
       isVegetarian: item.isVegetarian,
       category: item.category,
-      subcategory: item.subcategory || "",
+      subcategory: item.subcategory, //Added subcategory
       imageUrl: item.imageUrl,
       isBestSeller: item.isBestSeller,
       isAvailable: item.isAvailable,
@@ -266,7 +257,12 @@ export default function MenuManagement() {
         });
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
+      await refetch();
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/menu"],
+        exact: true,
+        refetchType: 'all'
+      });
 
       toast({
         title: "Category Updated",
@@ -275,10 +271,11 @@ export default function MenuManagement() {
 
       setEditingCategory(null);
       setNewCategoryName("");
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error updating category:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update category name",
+        description: "Failed to update category name. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -292,6 +289,10 @@ export default function MenuManagement() {
       [category]: !prev[category]
     }));
   };
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error loading menu items. Please try again.</div>;
+  }
 
   return (
     <AdminLayout>
@@ -317,263 +318,264 @@ export default function MenuManagement() {
                 </DialogTitle>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                  <ScrollArea className="max-h-[calc(90vh-120px)] px-1">
-                    <div className="space-y-4 px-3 pb-4">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Name</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter item name" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter item description" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Price (₹)</FormLabel>
-                            <FormControl>
-                              <Input {...field} type="number" step="0.01" min="0" placeholder="Enter price" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="category"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter category" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="subcategory"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Subcategory</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter subcategory" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="imageUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Image URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter image URL" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="isVegetarian"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2">
-                            <FormLabel>Vegetarian</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                className="data-[state=checked]:!bg-green-500 data-[state=unchecked]:!bg-red-500"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="isBestSeller"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2">
-                            <FormLabel>Best Seller</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="isAvailable"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2">
-                            <FormLabel>Available</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                <ScrollArea className="max-h-[calc(90vh-120px)] px-1">
+                  <form
+                    onSubmit={form.handleSubmit(handleSubmit)}
+                    className="space-y-4 px-3 pb-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter item name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter item description" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price (₹)</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="number" step="0.01" min="0" placeholder="Enter price" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter category" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="subcategory" // Added subcategory field
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subcategory</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter subcategory" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="imageUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Image URL</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter image URL" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="isVegetarian"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2">
+                          <FormLabel>Vegetarian</FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="data-[state=checked]:!bg-green-500 data-[state=unchecked]:!bg-red-500"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="isBestSeller"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2">
+                          <FormLabel>Best Seller</FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="isAvailable"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2">
+                          <FormLabel>Available</FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
 
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">Customization Options</h3>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={addCustomizationOption}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Option
-                          </Button>
-                        </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Customization Options</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addCustomizationOption}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Option
+                        </Button>
+                      </div>
 
-                        {form.watch("customizations.options")?.map((option, optionIndex) => (
-                          <div key={optionIndex} className="space-y-4 p-4 border rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <FormField
-                                control={form.control}
-                                name={`customizations.options.${optionIndex}.name`}
-                                render={({ field }) => (
-                                  <FormItem className="flex-1 mr-4">
-                                    <FormLabel>Option Name</FormLabel>
-                                    <FormControl>
-                                      <Input {...field} placeholder="e.g., Spice Level" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeCustomizationOption(optionIndex)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-
+                      {form.watch("customizations.options")?.map((option, optionIndex) => (
+                        <div key={optionIndex} className="space-y-4 p-4 border rounded-lg">
+                          <div className="flex items-center justify-between">
                             <FormField
                               control={form.control}
-                              name={`customizations.options.${optionIndex}.maxChoices`}
+                              name={`customizations.options.${optionIndex}.name`}
                               render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Max Choices</FormLabel>
+                                <FormItem className="flex-1 mr-4">
+                                  <FormLabel>Option Name</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      type="number"
-                                      min="1"
-                                      {...field}
-                                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                    />
+                                    <Input {...field} placeholder="e.g., Spice Level" />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeCustomizationOption(optionIndex)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
 
-                            <div className="space-y-2">
-                              <FormLabel>Choices</FormLabel>
-                              <div className="flex flex-wrap gap-2">
-                                {option.choices.map((choice, choiceIndex) => (
-                                  <div
-                                    key={choiceIndex}
-                                    className="flex items-center bg-secondary text-secondary-foreground px-2 py-1 rounded-md"
-                                  >
-                                    <span>{choice}</span>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-4 w-4 ml-2"
-                                      onClick={() => removeChoice(optionIndex, choiceIndex)}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="flex gap-2">
-                                <Input
-                                  value={newChoice}
-                                  onChange={(e) => setNewChoice(e.target.value)}
-                                  placeholder="Add new choice"
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      addChoice(optionIndex);
-                                    }
-                                  }}
-                                />
-                                <Button
-                                  type="button"
-                                  onClick={() => addChoice(optionIndex)}
+                          <FormField
+                            control={form.control}
+                            name={`customizations.options.${optionIndex}.maxChoices`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Max Choices</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="space-y-2">
+                            <FormLabel>Choices</FormLabel>
+                            <div className="flex flex-wrap gap-2">
+                              {option.choices.map((choice, choiceIndex) => (
+                                <div
+                                  key={choiceIndex}
+                                  className="flex items-center bg-secondary text-secondary-foreground px-2 py-1 rounded-md"
                                 >
-                                  Add
-                                </Button>
-                              </div>
+                                  <span>{choice}</span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 ml-2"
+                                    onClick={() => removeChoice(optionIndex, choiceIndex)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <Input
+                                value={newChoice}
+                                onChange={(e) => setNewChoice(e.target.value)}
+                                placeholder="Add new choice"
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addChoice(optionIndex);
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                onClick={() => addChoice(optionIndex)}
+                              >
+                                Add
+                              </Button>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  </ScrollArea>
-                  <div className="flex justify-end gap-2 pt-4 px-3 border-t mt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsAddDialogOpen(false);
-                        setEditingItem(null);
-                        form.reset();
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      {editingItem ? "Update" : "Add"} Item
-                    </Button>
-                  </div>
-                </form>
+                  </form>
+                </ScrollArea>
+                <div className="flex justify-end gap-2 pt-4 px-3 border-t mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsAddDialogOpen(false);
+                      setEditingItem(null);
+                      form.reset();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={form.handleSubmit(handleSubmit)}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {editingItem ? "Update" : "Add"} Item
+                  </Button>
+                </div>
               </Form>
             </DialogContent>
           </Dialog>
@@ -710,7 +712,7 @@ export default function MenuManagement() {
                                         {item.category}
                                       </span>
                                     </div>
-                                    {item.customizations?.options && item.customizations.options.length > 0 && (
+                                    {item.customizations?.options?.length > 0 && (
                                       <div className="mt-2">
                                         <p className="text-sm text-gray-500">
                                           Customization Options: {item.customizations.options.map(opt => opt.name).join(", ")}
