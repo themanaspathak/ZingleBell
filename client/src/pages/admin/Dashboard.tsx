@@ -14,7 +14,7 @@ export default function AdminDashboard() {
   });
 
   // Calculate statistics
-  const activeOrders = orders?.filter(order => order.status === "pending") || [];
+  const activeOrders = orders?.filter(order => order.status === "in progress") || [];
   const completedOrders = orders?.filter(order => order.status === "completed") || [];
 
   const todayOrders = orders?.filter(order => {
@@ -111,11 +111,14 @@ export default function AdminDashboard() {
                         Table {order.tableNumber}
                       </p>
                       <div className="mt-2">
-                        {order.items.map((item, index) => (
-                          <p key={index} className="text-sm">
-                            {item.quantity}x {item.menuItemId}
-                          </p>
-                        ))}
+                        {order.items.map((item, index) => {
+                          const menuItem = item.menuItem;
+                          return (
+                            <p key={index} className="text-sm">
+                              {item.quantity}x {menuItem?.name || `Item ${item.menuItemId}`}
+                            </p>
+                          );
+                        })}
                       </div>
                     </div>
                     <div className="text-right">
