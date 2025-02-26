@@ -22,15 +22,17 @@ export default function OrderPayment() {
 
   const handlePaymentStatusUpdate = async (orderId: number) => {
     try {
-      const response = await apiRequest(
-        `/api/orders/${orderId}/payment-status`, 
-        'POST', 
-        { status: 'paid' }
-      );
+      const response = await fetch(`/api/orders/${orderId}/payment-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'paid' })
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update payment status");
+        throw new Error(errorData.error || "Failed to update payment status");
       }
 
       // Immediately invalidate the orders query to trigger a refresh

@@ -21,6 +21,7 @@ export interface IStorage {
   getUserOrdersByMobile(mobileNumber: string): Promise<Order[]>;
   updateMenuItem(id: number, menuItem: Partial<MenuItem>): Promise<MenuItem>;
   deleteMenuItem(id: number): Promise<void>;
+  updateOrderPaymentStatus(orderId: number, paymentStatus: 'paid' | 'failed' | 'pending'): Promise<Order>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -275,6 +276,35 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error fetching user orders by mobile:", error);
       return [];
+    }
+  }
+  async updateOrderPaymentStatus(orderId: number, paymentStatus: 'paid' | 'failed' | 'pending'): Promise<Order> {
+    try {
+      // First check if the order exists
+      const [currentOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+
+      if (!currentOrder) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+
+      // Update the order's payment status
+      const [updatedOrder] = await db
+        .update(orders)
+        .set({ paymentStatus })
+        .where(eq(orders.id, orderId))
+        .returning();
+
+      if (!updatedOrder) {
+        throw new Error(`Failed to update payment status for order ${orderId}`);
+      }
+
+      return updatedOrder;
+    } catch (error) {
+      console.error("Error updating order payment status:", error);
+      throw error;
     }
   }
 }
