@@ -98,11 +98,12 @@ export default function MenuManagement() {
   const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu"],
     refetchOnWindowFocus: false,
-    staleTime: 0,
   });
 
   const menuMutation = useMutation({
     mutationFn: async (data: MenuItemFormData) => {
+      if (!data) throw new Error("No data provided");
+
       const payload = {
         ...data,
         price: Number(data.price),
@@ -111,12 +112,21 @@ export default function MenuManagement() {
       const endpoint = editingItem ? `/api/menu/${editingItem.id}` : "/api/menu";
       const method = editingItem ? "PATCH" : "POST";
 
-      const response = await apiRequest(endpoint, method, payload);
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to save menu item");
+        throw new Error(error.message || `Failed to ${editingItem ? 'update' : 'create'} menu item`);
       }
-      return response.json();
+
+      const result = await response.json();
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
@@ -141,6 +151,8 @@ export default function MenuManagement() {
     try {
       setIsSubmitting(true);
       await menuMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -305,264 +317,263 @@ export default function MenuManagement() {
                 </DialogTitle>
               </DialogHeader>
               <Form {...form}>
-                <ScrollArea className="max-h-[calc(90vh-120px)] px-1">
-                  <form
-                    onSubmit={form.handleSubmit(handleSubmit)}
-                    className="space-y-4 px-3 pb-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter item name" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter item description" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price (₹)</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="number" step="0.01" min="0" placeholder="Enter price" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter category" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="subcategory"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subcategory</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter subcategory" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="imageUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Image URL</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter image URL" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="isVegetarian"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center gap-2">
-                          <FormLabel>Vegetarian</FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:!bg-green-500 data-[state=unchecked]:!bg-red-500"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="isBestSeller"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center gap-2">
-                          <FormLabel>Best Seller</FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="isAvailable"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center gap-2">
-                          <FormLabel>Available</FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <ScrollArea className="max-h-[calc(90vh-120px)] px-1">
+                    <div className="space-y-4 px-3 pb-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter item name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter item description" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Price (₹)</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="number" step="0.01" min="0" placeholder="Enter price" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter category" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="subcategory"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Subcategory</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter subcategory" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="imageUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Image URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter image URL" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="isVegetarian"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2">
+                            <FormLabel>Vegetarian</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="data-[state=checked]:!bg-green-500 data-[state=unchecked]:!bg-red-500"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="isBestSeller"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2">
+                            <FormLabel>Best Seller</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="isAvailable"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2">
+                            <FormLabel>Available</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Customization Options</h3>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addCustomizationOption}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Option
-                        </Button>
-                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">Customization Options</h3>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={addCustomizationOption}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Option
+                          </Button>
+                        </div>
 
-                      {form.watch("customizations.options")?.map((option, optionIndex) => (
-                        <div key={optionIndex} className="space-y-4 p-4 border rounded-lg">
-                          <div className="flex items-center justify-between">
+                        {form.watch("customizations.options")?.map((option, optionIndex) => (
+                          <div key={optionIndex} className="space-y-4 p-4 border rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <FormField
+                                control={form.control}
+                                name={`customizations.options.${optionIndex}.name`}
+                                render={({ field }) => (
+                                  <FormItem className="flex-1 mr-4">
+                                    <FormLabel>Option Name</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} placeholder="e.g., Spice Level" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeCustomizationOption(optionIndex)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+
                             <FormField
                               control={form.control}
-                              name={`customizations.options.${optionIndex}.name`}
+                              name={`customizations.options.${optionIndex}.maxChoices`}
                               render={({ field }) => (
-                                <FormItem className="flex-1 mr-4">
-                                  <FormLabel>Option Name</FormLabel>
+                                <FormItem>
+                                  <FormLabel>Max Choices</FormLabel>
                                   <FormControl>
-                                    <Input {...field} placeholder="e.g., Spice Level" />
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      {...field}
+                                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeCustomizationOption(optionIndex)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
 
-                          <FormField
-                            control={form.control}
-                            name={`customizations.options.${optionIndex}.maxChoices`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Max Choices</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    {...field}
-                                    onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="space-y-2">
-                            <FormLabel>Choices</FormLabel>
-                            <div className="flex flex-wrap gap-2">
-                              {option.choices.map((choice, choiceIndex) => (
-                                <div
-                                  key={choiceIndex}
-                                  className="flex items-center bg-secondary text-secondary-foreground px-2 py-1 rounded-md"
-                                >
-                                  <span>{choice}</span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4 ml-2"
-                                    onClick={() => removeChoice(optionIndex, choiceIndex)}
+                            <div className="space-y-2">
+                              <FormLabel>Choices</FormLabel>
+                              <div className="flex flex-wrap gap-2">
+                                {option.choices.map((choice, choiceIndex) => (
+                                  <div
+                                    key={choiceIndex}
+                                    className="flex items-center bg-secondary text-secondary-foreground px-2 py-1 rounded-md"
                                   >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex gap-2">
-                              <Input
-                                value={newChoice}
-                                onChange={(e) => setNewChoice(e.target.value)}
-                                placeholder="Add new choice"
-                                onKeyPress={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    addChoice(optionIndex);
-                                  }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                onClick={() => addChoice(optionIndex)}
-                              >
-                                Add
-                              </Button>
+                                    <span>{choice}</span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 ml-2"
+                                      onClick={() => removeChoice(optionIndex, choiceIndex)}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={newChoice}
+                                  onChange={(e) => setNewChoice(e.target.value)}
+                                  placeholder="Add new choice"
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      addChoice(optionIndex);
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={() => addChoice(optionIndex)}
+                                >
+                                  Add
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </form>
-                </ScrollArea>
-                <div className="flex justify-end gap-2 pt-4 px-3 border-t mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsAddDialogOpen(false);
-                      setEditingItem(null);
-                      form.reset();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={form.handleSubmit(handleSubmit)}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    {editingItem ? "Update" : "Add"} Item
-                  </Button>
-                </div>
+                  </ScrollArea>
+                  <div className="flex justify-end gap-2 pt-4 px-3 border-t mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsAddDialogOpen(false);
+                        setEditingItem(null);
+                        form.reset();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      {editingItem ? "Update" : "Add"} Item
+                    </Button>
+                  </div>
+                </form>
               </Form>
             </DialogContent>
           </Dialog>
