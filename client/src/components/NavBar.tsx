@@ -10,8 +10,8 @@ export default function NavBar() {
   // Calculate total quantity across all items
   const totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Hide navigation on admin pages
-  if (location.startsWith("/admin")) {
+  // Hide navigation on admin pages and only show on menu page
+  if (location.startsWith("/admin") || location !== "/") {
     return null;
   }
 
