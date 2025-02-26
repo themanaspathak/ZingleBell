@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { MenuItem } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +55,7 @@ const menuItemSchema = z.object({
   }),
   isVegetarian: z.boolean().default(false),
   category: z.string().min(1, "Category is required"),
-  subcategory: z.string().optional(), //Added subcategory field
+  subcategory: z.string().optional(),
   imageUrl: z.string().min(1, "Image URL is required").url("Must be a valid URL"),
   isBestSeller: z.boolean().default(false),
   isAvailable: z.boolean().default(true),
@@ -95,17 +95,14 @@ export default function MenuManagement() {
     },
   });
 
-  const { data: menuItems, isLoading, error, refetch } = useQuery<MenuItem[]>({
+  const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu"],
     refetchOnWindowFocus: false,
     staleTime: 0,
   });
 
-  const handleSubmit = async (data: MenuItemFormData) => {
-    try {
-      setIsSubmitting(true);
-      console.log("Submitting menu item:", data);
-
+  const menuMutation = useMutation({
+    mutationFn: async (data: MenuItemFormData) => {
       const payload = {
         ...data,
         price: Number(data.price),
@@ -115,30 +112,35 @@ export default function MenuManagement() {
       const method = editingItem ? "PATCH" : "POST";
 
       const response = await apiRequest(endpoint, method, payload);
-      console.log("Submit response:", response);
-
-      await refetch();
-      await queryClient.invalidateQueries({
-        queryKey: ["/api/menu"],
-        exact: true,
-        refetchType: 'all'
-      });
-
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to save menu item");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
       toast({
         title: `Menu Item ${editingItem ? "Updated" : "Added"}`,
-        description: `Successfully ${editingItem ? "updated" : "added"} ${data.name}`,
+        description: `Successfully ${editingItem ? "updated" : "added"} ${form.getValues("name")}`,
       });
-
       setIsAddDialogOpen(false);
       setEditingItem(null);
       form.reset();
-    } catch (error) {
-      console.error("Error submitting menu item:", error);
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: `Failed to ${editingItem ? "update" : "add"} menu item. Please try again.`,
+        description: error.message || `Failed to ${editingItem ? "update" : "add"} menu item`,
         variant: "destructive",
       });
+    }
+  });
+
+  const handleSubmit = async (data: MenuItemFormData) => {
+    try {
+      setIsSubmitting(true);
+      await menuMutation.mutateAsync(data);
     } finally {
       setIsSubmitting(false);
     }
@@ -149,27 +151,22 @@ export default function MenuManagement() {
 
     try {
       setIsSubmitting(true);
-      console.log("Deleting menu item:", id);
-
       const response = await apiRequest(`/api/menu/${id}`, "DELETE");
-      console.log("Delete response:", response);
 
-      await refetch();
-      await queryClient.invalidateQueries({
-        queryKey: ["/api/menu"],
-        exact: true,
-        refetchType: 'all'
-      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete menu item");
+      }
 
+      queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
       toast({
         title: "Menu Item Deleted",
         description: "Successfully deleted menu item",
       });
-    } catch (error) {
-      console.error("Error deleting menu item:", error);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to delete menu item. Please try again.",
+        description: error.message || "Failed to delete menu item",
         variant: "destructive",
       });
     } finally {
@@ -185,7 +182,7 @@ export default function MenuManagement() {
       price: item.price.toString(),
       isVegetarian: item.isVegetarian,
       category: item.category,
-      subcategory: item.subcategory, //Added subcategory
+      subcategory: item.subcategory || "",
       imageUrl: item.imageUrl,
       isBestSeller: item.isBestSeller,
       isAvailable: item.isAvailable,
@@ -257,12 +254,7 @@ export default function MenuManagement() {
         });
       }
 
-      await refetch();
-      await queryClient.invalidateQueries({
-        queryKey: ["/api/menu"],
-        exact: true,
-        refetchType: 'all'
-      });
+      await queryClient.invalidateQueries({ queryKey: ["/api/menu"] });
 
       toast({
         title: "Category Updated",
@@ -271,11 +263,10 @@ export default function MenuManagement() {
 
       setEditingCategory(null);
       setNewCategoryName("");
-    } catch (error) {
-      console.error("Error updating category:", error);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update category name. Please try again.",
+        description: error.message || "Failed to update category name",
         variant: "destructive",
       });
     } finally {
@@ -289,10 +280,6 @@ export default function MenuManagement() {
       [category]: !prev[category]
     }));
   };
-
-  if (error) {
-    return <div className="p-4 text-red-500">Error loading menu items. Please try again.</div>;
-  }
 
   return (
     <AdminLayout>
@@ -377,7 +364,7 @@ export default function MenuManagement() {
                     />
                     <FormField
                       control={form.control}
-                      name="subcategory" // Added subcategory field
+                      name="subcategory"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Subcategory</FormLabel>
@@ -712,7 +699,7 @@ export default function MenuManagement() {
                                         {item.category}
                                       </span>
                                     </div>
-                                    {item.customizations?.options?.length > 0 && (
+                                    {item.customizations?.options && item.customizations.options.length > 0 && (
                                       <div className="mt-2">
                                         <p className="text-sm text-gray-500">
                                           Customization Options: {item.customizations.options.map(opt => opt.name).join(", ")}
