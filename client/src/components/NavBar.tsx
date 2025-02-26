@@ -18,18 +18,16 @@ export default function NavBar() {
 
   return (
     <nav className="fixed top-0 right-0 p-4 flex gap-3 z-50 md:hidden bg-gradient-to-r from-white/80 to-white/90 backdrop-blur-sm rounded-bl-2xl shadow-lg">
-      {verifiedEmail && (
-        <Link href={`/orders/${encodeURIComponent(verifiedEmail)}`}>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="relative rounded-full bg-white/80 hover:bg-white shadow-md hover:shadow-lg transition-all duration-300 border-gray-200 group"
-          >
-            <ScrollText className="h-5 w-5 text-gray-700 group-hover:scale-110 transition-transform duration-200" />
-            <span className="absolute inset-0 bg-primary/5 rounded-full scale-0 group-hover:scale-100 transition-transform duration-200" />
-          </Button>
-        </Link>
-      )}
+      <Link href={verifiedEmail ? `/orders/${encodeURIComponent(verifiedEmail)}` : "/verify"}>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          className="relative rounded-full bg-white/80 hover:bg-white shadow-md hover:shadow-lg transition-all duration-300 border-gray-200 group"
+        >
+          <ScrollText className="h-5 w-5 text-gray-700 group-hover:scale-110 transition-transform duration-200" />
+          <span className="absolute inset-0 bg-primary/5 rounded-full scale-0 group-hover:scale-100 transition-transform duration-200" />
+        </Button>
+      </Link>
 
       <Link href="/cart">
         <Button 
