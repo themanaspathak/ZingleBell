@@ -2,12 +2,20 @@ import { useState } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Minus, Plus, ArrowLeft, Wallet } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Checkout() {
   const { state, dispatch } = useCart();
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const subtotal = state.items.reduce(
     (sum, item) => sum + item.menuItem.price * item.quantity,
@@ -30,6 +38,69 @@ export default function Checkout() {
       type: "SET_TABLE",
       tableNumber,
     });
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!customerName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter your name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!mobileNumber || mobileNumber.length !== 10) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Please enter a valid 10-digit mobile number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const orderData = {
+        tableNumber: state.tableNumber || 1,
+        userEmail: `${mobileNumber}@guest.restaurant.com`,
+        mobileNumber: mobileNumber,
+        customerName: customerName,
+        items: state.items.map(item => ({
+          menuItemId: item.menuItem.id,
+          quantity: item.quantity,
+          customizations: item.customizations || {}
+        })),
+        status: "in progress",
+        paymentStatus: "pending" as const,
+        paymentMethod: "cash" as const,
+        cookingInstructions: state.cookingInstructions || "",
+        total: total,
+      };
+
+      const response = await apiRequest("/api/orders", "POST", orderData);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create order");
+      }
+
+      dispatch({ type: "CLEAR_CART" });
+      localStorage.setItem("customerName", customerName);
+      localStorage.setItem("mobileNumber", mobileNumber);
+
+      navigate("/order-confirmed");
+    } catch (error: any) {
+      console.error("Failed to place order:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to place your order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (state.items.length === 0) {
@@ -104,6 +175,25 @@ export default function Checkout() {
           </Card>
         ))}
 
+        {/* Customer Details */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Your Details</h2>
+          <Input
+            type="text"
+            placeholder="Your Name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="h-12"
+          />
+          <Input
+            type="tel"
+            placeholder="Mobile Number"
+            value={mobileNumber}
+            onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            className="h-12"
+          />
+        </div>
+
         {/* Table Selection Grid */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Select Your Table</h2>
@@ -123,28 +213,27 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* Payment Method Selection */}
+        {/* Payment Method and Order Button */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Payment Method</h2>
 
-          {/* Cash Payment Option */}
-          <Link href={selectedTable ? "/mobile-verification" : "#"} className="block">
-            <Button 
-              className="w-full bg-green-600 hover:bg-green-700 text-white h-auto py-4 flex items-center justify-center gap-3"
-              disabled={!selectedTable}
-            >
-              <Wallet className="h-5 w-5" />
-              <div className="text-left">
-                <div className="font-semibold">Pay with Cash</div>
-                <div className="text-sm opacity-90">Pay at the restaurant</div>
-              </div>
-              <div className="ml-auto font-bold">₹{Math.round(total)}</div>
-            </Button>
-          </Link>
+          {/* Order Button */}
+          <Button 
+            className="w-full bg-green-600 hover:bg-green-700 text-white h-auto py-4 flex items-center justify-center gap-3"
+            onClick={handlePlaceOrder}
+            disabled={!selectedTable || !customerName || mobileNumber.length !== 10 || isLoading}
+          >
+            <Wallet className="h-5 w-5" />
+            <div className="text-left">
+              <div className="font-semibold">Place Order</div>
+              <div className="text-sm opacity-90">Pay at the restaurant</div>
+            </div>
+            <div className="ml-auto font-bold">₹{Math.round(total)}</div>
+          </Button>
 
-          {!selectedTable && (
+          {(!selectedTable || !customerName || mobileNumber.length !== 10) && (
             <p className="text-sm text-muted-foreground text-center">
-              Please select a table to proceed with payment
+              Please fill in all details to proceed with the order
             </p>
           )}
         </div>

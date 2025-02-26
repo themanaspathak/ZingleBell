@@ -12,7 +12,6 @@ import Kitchen from "@/pages/Kitchen";
 import MenuManagement from "@/pages/admin/MenuManagement";
 import OrderPayment from "@/pages/admin/OrderPayment";
 import OrderConfirmed from "@/pages/OrderConfirmed";
-import MobileVerification from "@/pages/MobileVerification";
 import OrderHistory from "@/pages/OrderHistory";
 import { CartProvider } from "@/contexts/CartContext";
 import NavBar from "@/components/NavBar";
@@ -29,7 +28,6 @@ function Router() {
         <Route path="/" component={Menu} />
         <Route path="/cart" component={Cart} />
         <Route path="/checkout" component={Checkout} />
-        <Route path="/mobile-verification" component={MobileVerification} />
         <Route path="/order-confirmed" component={OrderConfirmed} />
         <Route path="/orders/:mobile" component={OrderHistory} />
         <Route path="/kitchen" component={Kitchen} />

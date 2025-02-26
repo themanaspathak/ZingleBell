@@ -3,50 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertOrderSchema } from "@shared/schema";
 import { menuRouter } from "./routes/menu";
-import { sendOTP, verifyOTP } from "./services/messageCentralService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register menu routes
   app.use("/api/menu", menuRouter);
-
-  // Mobile OTP verification endpoints
-  app.post("/api/send-mobile-otp", async (req, res) => {
-    try {
-      const { mobileNumber } = req.body;
-      if (!mobileNumber) {
-        res.status(400).json({ success: false, message: "Mobile number is required" });
-        return;
-      }
-
-      const result = await sendOTP(mobileNumber);
-      res.json(result);
-    } catch (error) {
-      console.error("Failed to send OTP:", error);
-      res.status(500).json({ success: false, message: "Failed to send OTP" });
-    }
-  });
-
-  app.post("/api/verify-mobile-otp", async (req, res) => {
-    try {
-      const { mobileNumber, otp } = req.body;
-      if (!mobileNumber || !otp) {
-        res.status(400).json({ success: false, message: "Mobile number and OTP are required" });
-        return;
-      }
-
-      const result = await verifyOTP(mobileNumber, otp);
-      if (result.success) {
-        // Store verified mobile number in session
-        if (req.session) {
-          req.session.verifiedMobile = mobileNumber;
-        }
-      }
-      res.json(result);
-    } catch (error) {
-      console.error("Failed to verify OTP:", error);
-      res.status(500).json({ success: false, message: "Failed to verify OTP" });
-    }
-  });
 
   // Add endpoint to get all orders
   app.get("/api/orders", async (req, res) => {
