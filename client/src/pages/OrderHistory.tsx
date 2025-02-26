@@ -5,7 +5,7 @@ import { Order } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, IndianRupee, Info, MapPin } from "lucide-react";
+import { ArrowLeft, Clock, IndianRupee, Info, MapPin, LogOut } from "lucide-react";
 import { format } from "date-fns";
 
 export default function OrderHistory() {
@@ -14,6 +14,13 @@ export default function OrderHistory() {
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
+
+  const handleLogout = () => {
+    // Clear any stored data
+    localStorage.clear();
+    // Redirect to home page
+    navigate("/");
+  };
 
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8">Loading order history...</div>;
@@ -44,6 +51,15 @@ export default function OrderHistory() {
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Menu
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
             </Button>
           </div>
           <div className="flex items-center gap-3 mb-3">
