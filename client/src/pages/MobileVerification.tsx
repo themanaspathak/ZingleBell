@@ -62,10 +62,10 @@ export default function MobileVerification() {
         throw new Error(errorData.message || "Failed to create order");
       }
 
+      // Clear the cart
       dispatch({ type: "CLEAR_CART" });
 
-      // Store order flag and current mobile number in localStorage
-      localStorage.setItem("hasPlacedOrder", "true");
+      // Store the current mobile number in localStorage
       localStorage.setItem("currentMobileNumber", mobileNumber);
 
       navigate("/order-confirmed");

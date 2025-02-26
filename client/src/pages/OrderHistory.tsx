@@ -23,7 +23,7 @@ export default function OrderHistory() {
   });
 
   const handleLogout = () => {
-    localStorage.clear(); // Clear all storage including currentMobileNumber
+    localStorage.removeItem("currentMobileNumber"); // Only remove the mobile number
     navigate("/"); // Redirect to menu
   };
 
