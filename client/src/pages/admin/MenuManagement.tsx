@@ -185,7 +185,7 @@ export default function MenuManagement() {
       price: item.price.toString(),
       isVegetarian: item.isVegetarian,
       category: item.category,
-      subcategory: item.subcategory, //Added subcategory
+      subcategory: item.subcategory || "", // Convert null to empty string
       imageUrl: item.imageUrl,
       isBestSeller: item.isBestSeller,
       isAvailable: item.isAvailable,
@@ -712,7 +712,7 @@ export default function MenuManagement() {
                                         {item.category}
                                       </span>
                                     </div>
-                                    {item.customizations?.options?.length > 0 && (
+                                    {item.customizations?.options && item.customizations.options.length > 0 && (
                                       <div className="mt-2">
                                         <p className="text-sm text-gray-500">
                                           Customization Options: {item.customizations.options.map(opt => opt.name).join(", ")}
