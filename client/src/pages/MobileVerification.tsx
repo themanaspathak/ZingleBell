@@ -86,12 +86,10 @@ export default function MobileVerification() {
 
   const placeOrder = async () => {
     try {
-      const guestEmail = `${mobileNumber}@guest.restaurant.com`;
-      console.log("Creating guest order with email:", guestEmail);
+      console.log("Creating order with mobile:", mobileNumber);
 
       const orderData = {
         tableNumber: state.tableNumber || 1,
-        userEmail: guestEmail,
         mobileNumber: mobileNumber,
         customerName: customerName,
         items: state.items.map(item => ({
@@ -100,16 +98,12 @@ export default function MobileVerification() {
           customizations: item.customizations || {}
         })),
         status: "in progress",
-        paymentStatus: "pending" as const,
-        paymentMethod: "cash" as const,
         cookingInstructions: state.cookingInstructions || "",
         total: state.items.reduce(
           (sum, item) => sum + item.menuItem.price * item.quantity,
           0
         ),
       };
-
-      console.log("Attempting to place order with data:", orderData);
 
       const response = await apiRequest("/api/orders", "POST", orderData);
 
@@ -120,8 +114,9 @@ export default function MobileVerification() {
 
       dispatch({ type: "CLEAR_CART" });
 
-      // Store order flag in localStorage
+      // Store order flag and mobile number in localStorage
       localStorage.setItem("hasPlacedOrder", "true");
+      localStorage.setItem("currentMobileNumber", mobileNumber);
 
       navigate("/order-confirmed");
     } catch (error: any) {

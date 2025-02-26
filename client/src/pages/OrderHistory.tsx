@@ -11,25 +11,26 @@ import { format } from "date-fns";
 export default function OrderHistory() {
   const [, navigate] = useLocation();
   const hasPlacedOrder = localStorage.getItem("hasPlacedOrder") === "true";
+  const currentMobileNumber = localStorage.getItem("currentMobileNumber");
 
-  // Fetch both orders and menu items
+  // Fetch orders for current mobile number and menu items
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-    enabled: hasPlacedOrder, // Only fetch if user has placed an order
+    queryKey: [`/api/orders/mobile/${currentMobileNumber}`],
+    enabled: hasPlacedOrder && !!currentMobileNumber,
   });
 
   const { data: menuItems, isLoading: menuLoading } = useQuery({
     queryKey: ["/api/menu"],
-    enabled: hasPlacedOrder, // Only fetch if user has placed an order
+    enabled: hasPlacedOrder,
   });
 
   const handleLogout = () => {
-    localStorage.clear(); // Clear all storage including hasPlacedOrder
+    localStorage.clear(); // Clear all storage including hasPlacedOrder and currentMobileNumber
     navigate("/"); // Redirect to menu
   };
 
   // Redirect if no order has been placed
-  if (!hasPlacedOrder) {
+  if (!hasPlacedOrder || !currentMobileNumber) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
         <div className="text-center max-w-md">

@@ -1,17 +1,18 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { insertOrderSchema } from "@shared/schema";
-import { stringify } from "csv-stringify/sync";
 
 const router = Router();
 
-// Get all orders
-router.get("/", async (req, res) => {
+// Get all orders filtered by mobile number if provided
+router.get("/mobile/:mobileNumber", async (req, res) => {
   try {
+    const { mobileNumber } = req.params;
     const orders = await storage.getAllOrders();
-    res.json(orders);
+    const filteredOrders = orders.filter(order => order.mobileNumber === mobileNumber);
+    res.json(filteredOrders);
   } catch (error) {
-    console.error("Failed to fetch orders:", error);
+    console.error("Failed to fetch orders by mobile number:", error);
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
@@ -25,6 +26,17 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Failed to create order:", error);
     res.status(400).json({ error: "Failed to create order" });
+  }
+});
+
+// Get all orders
+router.get("/", async (req, res) => {
+  try {
+    const orders = await storage.getAllOrders();
+    res.json(orders);
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+    res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
 
