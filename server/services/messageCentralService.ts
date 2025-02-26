@@ -11,7 +11,7 @@ export async function sendOTP(mobileNumber: string): Promise<{
   message: string;
 }> {
   // If no auth token is present, use mock implementation
-  if (!process.env.MESSAGE_CENTRAL_AUTH_TOKEN) {
+  if (!process.env.MSG91_AUTH_TOKEN) {
     console.log('⚠️ Running in development mode - using mock OTP service');
     console.log(`📱 Mock OTP ${MOCK_OTP} for ${mobileNumber}`);
 
@@ -32,10 +32,16 @@ export async function sendOTP(mobileNumber: string): Promise<{
 
     const options = {
       method: 'POST',
-      url: `https://cpaas.messagecentral.com/verification/v3/send?countryCode=91&customerId=C-0BD79595E45C4DB&flowType=SMS&mobileNumber=${mobileNumber}`,
+      url: 'https://control.msg91.com/api/v5/otp',
       headers: {
-        'authToken': process.env.MESSAGE_CENTRAL_AUTH_TOKEN
-      }
+        'authkey': process.env.MSG91_AUTH_TOKEN || "441962AHROU8ezrOR67b7413eP1",
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        template_id: "YOUR_TEMPLATE_ID", // Replace with your MSG91 template ID
+        mobile: `91${mobileNumber}`, // Adding country code
+        otp: MOCK_OTP // Using the same OTP for consistency
+      })
     };
 
     return new Promise((resolve, reject) => {
@@ -63,7 +69,7 @@ export async function sendOTP(mobileNumber: string): Promise<{
           });
 
           verificationStore.set(mobileNumber, {
-            verificationId: responseData.data.verificationId,
+            verificationId: responseData.request_id || 'msg91-verification-id',
             expires: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes expiry
           });
 
@@ -101,7 +107,7 @@ export async function verifyOTP(mobileNumber: string, otp: string): Promise<{
   message: string;
 }> {
   // If no auth token is present, use mock implementation
-  if (!process.env.MESSAGE_CENTRAL_AUTH_TOKEN) {
+  if (!process.env.MSG91_AUTH_TOKEN) {
     console.log('⚠️ Running in development mode - using mock OTP verification');
     console.log('📱 Verifying OTP:', { mobileNumber, receivedOtp: otp, expectedOtp: MOCK_OTP });
 
@@ -153,11 +159,16 @@ export async function verifyOTP(mobileNumber: string, otp: string): Promise<{
     }
 
     const options = {
-      method: 'GET',
-      url: `https://cpaas.messagecentral.com/verification/v3/validateOtp?countryCode=91&mobileNumber=${mobileNumber}&verificationId=${verificationId}&customerId=C-0BD79595E45C4DB&code=${otp}`,
+      method: 'POST',
+      url: 'https://control.msg91.com/api/v5/otp/verify',
       headers: {
-        'authToken': process.env.MESSAGE_CENTRAL_AUTH_TOKEN
-      }
+        'authkey': process.env.MSG91_AUTH_TOKEN || "441962AHROU8ezrOR67b7413eP1",
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        otp: otp,
+        mobile: `91${mobileNumber}`
+      })
     };
 
     return new Promise((resolve) => {
@@ -173,7 +184,7 @@ export async function verifyOTP(mobileNumber: string, otp: string): Promise<{
         try {
           const responseData = JSON.parse(response.body);
           console.log("Verification API Response:", responseData);
-          const isValid = responseData.responseCode === "200" || responseData.responseCode === 200;
+          const isValid = responseData.type === "success";
 
           console.log(`${isValid ? '✅' : '❌'} OTP verification ${isValid ? 'successful' : 'failed'}`, {
             verificationId,
