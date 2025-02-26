@@ -13,7 +13,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Minus, Plus, Search } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Search, History } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Footer } from "@/components/ui/footer";
@@ -33,7 +33,6 @@ export default function Menu() {
   const [selectedCustomizations, setSelectedCustomizations] = useState<Record<string, string[]>>({});
   const [isCustomizationDialogOpen, setIsCustomizationDialogOpen] = useState(false);
 
-  // Function to get quantity of item in cart with specific customizations
   const getItemQuantity = (itemId: number, customizations:Record<string, string[]> = {}) => {
     return state.items.reduce((total, item) => {
       if (item.menuItem.id === itemId && JSON.stringify(item.customizations) === JSON.stringify(customizations)) {
@@ -43,7 +42,6 @@ export default function Menu() {
     }, 0);
   };
 
-  // Function to handle adding item to cart from customization dialog
   const handleCustomizedAddToCart = () => {
     if (!selectedItem) return;
 
@@ -67,7 +65,6 @@ export default function Menu() {
     setIsCustomizationDialogOpen(false);
   };
 
-  // Function to check if an item with exact same customizations exists
   const findMatchingCartItem = (item: MenuItem, customizations: Record<string, string[]>) => {
     return state.items.find(cartItem => {
       if (cartItem.menuItem.id !== item.id) return false;
@@ -75,7 +72,6 @@ export default function Menu() {
     });
   };
 
-  // Function to update quantity or show customization dialog
   const updateQuantity = (item: MenuItem, newQuantity: number) => {
     if (newQuantity === 0) {
       dispatch({
@@ -87,14 +83,12 @@ export default function Menu() {
         description: `${item.name} has been removed from your cart.`,
       });
     } else {
-      // If item has customization options, show dialog
       if (item.customizations?.options?.length > 0) {
         setSelectedItem(item);
-        setQuantity(newQuantity); // Preserve quantity for customization
+        setQuantity(newQuantity); 
         setSelectedCustomizations({});
         setIsCustomizationDialogOpen(true);
       } else {
-        // For items without customization, update directly
         dispatch({
           type: "UPDATE_QUANTITY",
           menuItemId: item.id,
@@ -140,7 +134,6 @@ export default function Menu() {
   const renderItemButton = (item: MenuItem) => {
     const quantity = getItemQuantity(item.id, {});
 
-    // If item is not available, show unavailable button
     if (!item.isAvailable) {
       return (
         <Button
@@ -210,16 +203,23 @@ export default function Menu() {
           <div className="absolute left-1/2 -translate-x-1/2">
             <Logo />
           </div>
-          <Link href="/cart">
-            <Button variant="outline" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {state.items.length > 0 && (
-                <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                  {state.items.length}
-                </span>
-              )}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/order-history">
+              <Button variant="outline" size="icon" className="relative">
+                <History className="h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/cart">
+              <Button variant="outline" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {state.items.length > 0 && (
+                  <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                    {state.items.length}
+                  </span>
+                )}
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="hidden md:flex items-center justify-between mb-8">
@@ -227,12 +227,20 @@ export default function Menu() {
           <div className="absolute left-1/2 -translate-x-1/2">
             <Logo />
           </div>
-          <Link href="/cart">
-            <Button variant="outline" className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Cart ({state.items.length})
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/order-history">
+              <Button variant="outline" className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Order History
+              </Button>
+            </Link>
+            <Link href="/cart">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Cart ({state.items.length})
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="space-y-4 mb-6">
@@ -301,14 +309,12 @@ export default function Menu() {
                         <Card key={item.id} className={`relative overflow-hidden ${!item.isAvailable ? 'opacity-60' : ''}`}>
                           <CardContent className="p-4">
                             <div className="flex flex-col md:flex-row gap-4">
-                              {/* Image Section */}
                               <div className="w-full md:w-24 h-48 md:h-24 relative rounded-lg overflow-hidden">
                                 <img
                                   src={item.imageUrl}
                                   alt={item.name}
                                   className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
                                 />
-                                {/* Veg indicator overlay */}
                                 <div className="absolute top-2 right-2 bg-white p-1 rounded-md shadow">
                                   <div className="w-4 h-4 border-2 border-green-600 p-0.5">
                                     <div className="w-full h-full rounded-full bg-green-600" />
@@ -316,7 +322,6 @@ export default function Menu() {
                                 </div>
                               </div>
 
-                              {/* Content Section */}
                               <div className="flex-1">
                                 <div className="flex flex-col h-full justify-between">
                                   <div>
@@ -354,14 +359,12 @@ export default function Menu() {
                         <Card key={item.id} className={`relative overflow-hidden ${!item.isAvailable ? 'opacity-60' : ''}`}>
                           <CardContent className="p-4">
                             <div className="flex flex-col md:flex-row gap-4">
-                              {/* Image Section */}
                               <div className="w-full md:w-24 h-48 md:h-24 relative rounded-lg overflow-hidden">
                                 <img
                                   src={item.imageUrl}
                                   alt={item.name}
                                   className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
                                 />
-                                {/* Non-veg indicator overlay */}
                                 <div className="absolute top-2 right-2 bg-white p-1 rounded-md shadow">
                                   <div className="w-4 h-4 border-2 border-red-600 p-0.5">
                                     <div className="w-full h-full rounded-full bg-red-600" />
@@ -369,7 +372,6 @@ export default function Menu() {
                                 </div>
                               </div>
 
-                              {/* Content Section */}
                               <div className="flex-1">
                                 <div className="flex flex-col h-full justify-between">
                                   <div>
