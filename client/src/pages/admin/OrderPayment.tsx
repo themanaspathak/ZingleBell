@@ -5,7 +5,7 @@ import { Order } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, IndianRupee, MapPin, User, Clock } from "lucide-react";
+import { CheckCircle2, IndianRupee, MapPin, User, Clock } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -20,12 +20,12 @@ export default function OrderPayment() {
     refetchInterval: 5000, // Poll every 5 seconds
   });
 
-  const handlePaymentStatusUpdate = async (orderId: number, status: 'paid' | 'failed') => {
+  const handlePaymentStatusUpdate = async (orderId: number) => {
     try {
       const response = await apiRequest(
         `/api/orders/${orderId}/payment-status`, 
         'POST', 
-        { status }
+        { status: 'paid' }
       );
 
       if (!response.ok) {
@@ -33,12 +33,12 @@ export default function OrderPayment() {
         throw new Error(errorData.message || "Failed to update payment status");
       }
 
+      // Immediately invalidate the orders query to trigger a refresh
       await queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
 
       toast({
-        title: `Payment ${status === 'paid' ? 'Confirmed' : 'Failed'}`,
-        description: `Order #${orderId} payment has been marked as ${status}`,
-        variant: status === 'paid' ? 'default' : 'destructive',
+        title: "Payment Confirmed",
+        description: `Order #${orderId} has been marked as paid`,
       });
     } catch (error: any) {
       console.error('Failed to update payment status:', error);
@@ -51,11 +51,12 @@ export default function OrderPayment() {
   };
 
   // Group orders by payment status
-  const paidOrders = orders?.filter(order => order.paymentStatus === "paid") || [];
+  const paidOrders = orders?.filter(order => 
+    order.paymentStatus === "paid" && order.status !== "cancelled"
+  ) || [];
   const pendingPaymentOrders = orders?.filter(order => 
     order.paymentStatus === "pending" && order.status !== "cancelled"
   ) || [];
-  const failedPaymentOrders = orders?.filter(order => order.paymentStatus === "failed") || [];
 
   const OrderCard = ({ order }: { order: Order }) => (
     <div className="flex flex-col p-4 bg-muted/50 rounded-lg space-y-3">
@@ -87,7 +88,7 @@ export default function OrderPayment() {
             variant="default"
             size="lg"
             className="w-2/3 bg-green-600 hover:bg-green-700 py-6 text-lg"
-            onClick={() => handlePaymentStatusUpdate(order.id, 'paid')}
+            onClick={() => handlePaymentStatusUpdate(order.id)}
           >
             <CheckCircle2 className="h-5 w-5 mr-2" />
             Mark as Paid
@@ -117,9 +118,9 @@ export default function OrderPayment() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pending Payment Orders */}
-          <Card className="lg:col-span-2">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Pending Payments</span>
@@ -144,59 +145,31 @@ export default function OrderPayment() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
-            {/* Paid Orders */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Paid Orders</span>
-                  <Badge className="bg-green-600">
-                    {paidOrders.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[calc(100vh-500px)]">
-                  <div className="space-y-4">
-                    {paidOrders.map((order) => (
-                      <OrderCard key={order.id} order={order} />
-                    ))}
-                    {paidOrders.length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">
-                        No paid orders
-                      </p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            {/* Failed Payment Orders */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Failed Payments</span>
-                  <Badge variant="destructive">
-                    {failedPaymentOrders.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[calc(100vh-500px)]">
-                  <div className="space-y-4">
-                    {failedPaymentOrders.map((order) => (
-                      <OrderCard key={order.id} order={order} />
-                    ))}
-                    {failedPaymentOrders.length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">
-                        No failed payments
-                      </p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Paid Orders */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Paid Orders</span>
+                <Badge className="bg-green-600">
+                  {paidOrders.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[calc(100vh-300px)]">
+                <div className="space-y-4">
+                  {paidOrders.map((order) => (
+                    <OrderCard key={order.id} order={order} />
+                  ))}
+                  {paidOrders.length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">
+                      No paid orders
+                    </p>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AdminLayout>
