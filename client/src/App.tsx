@@ -30,7 +30,7 @@ function Router() {
         <Route path="/cart" component={Cart} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/order-confirmed" component={OrderConfirmed} />
-        <Route path="/orders/:mobile" component={OrderHistory} />
+        <Route path="/order-history" component={OrderHistory} />
         <Route path="/kitchen" component={Kitchen} />
 
         {/* Admin Routes */}

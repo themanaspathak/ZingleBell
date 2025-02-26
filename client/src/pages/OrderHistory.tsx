@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Order, MenuItem } from "@shared/schema";
+import { Order } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, IndianRupee, User, Phone, Info, MapPin, CreditCard, LogOut } from "lucide-react";
+import { ArrowLeft, Clock, IndianRupee, Info, MapPin, LogOut } from "lucide-react";
 import { format } from "date-fns";
 
 export default function OrderHistory() {
   const [, navigate] = useLocation();
   const mobileNumber = localStorage.getItem("verifiedMobile");
+
+  // Add a console.log to debug the mobile number
+  console.log("Mobile number from localStorage:", mobileNumber);
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: [`/api/orders/mobile/${mobileNumber}`],
@@ -19,6 +22,7 @@ export default function OrderHistory() {
 
   const handleLogout = () => {
     localStorage.removeItem("verifiedMobile");
+    localStorage.removeItem("customerName");
     navigate("/");
   };
 
@@ -45,17 +49,6 @@ export default function OrderHistory() {
         return "bg-red-600 hover:bg-red-700 text-white";
       default:
         return "bg-secondary text-white";
-    }
-  };
-
-  const getPaymentStatusBadgeStyle = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "paid":
-        return "bg-emerald-600 hover:bg-emerald-700 text-white";
-      case "failed":
-        return "bg-rose-600 hover:bg-rose-700 text-white";
-      default:
-        return "bg-amber-600 hover:bg-amber-700 text-white";
     }
   };
 
@@ -88,9 +81,8 @@ export default function OrderHistory() {
               {orders?.length || 0} Orders
             </Badge>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Phone className="h-4 w-4" />
-            <span>+91 {mobileNumber}</span>
+          <div className="text-sm text-muted-foreground">
+            Mobile: +91 {mobileNumber}
           </div>
         </div>
 
@@ -123,7 +115,7 @@ export default function OrderHistory() {
                     <div key={index} className="flex justify-between items-start py-2 border-b last:border-0">
                       <div>
                         <p className="font-medium">
-                          {item.quantity}x {item.menuItemId}
+                          {item.quantity}x Item #{item.menuItemId}
                         </p>
                         {Object.entries(item.customizations || {}).map(([category, choices]) => (
                           <div key={category} className="text-sm text-muted-foreground ml-4 mt-1">
@@ -134,8 +126,7 @@ export default function OrderHistory() {
                       <div className="text-right font-medium">
                         <div className="flex items-center justify-end gap-1 text-green-600">
                           <IndianRupee className="h-4 w-4" />
-                          {/* Placeholder for price - needs MenuItem data */}
-                          0 {/* Replace with actual price calculation */}
+                          {item.price || 0}
                         </div>
                       </div>
                     </div>

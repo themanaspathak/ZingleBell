@@ -120,6 +120,7 @@ export default function MobileVerification() {
 
       dispatch({ type: "CLEAR_CART" });
 
+      // Store mobile number and customer name in localStorage
       localStorage.setItem("verifiedMobile", mobileNumber);
       localStorage.setItem("customerName", customerName);
 
