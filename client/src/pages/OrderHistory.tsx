@@ -5,36 +5,37 @@ import { Order } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, IndianRupee, Info, MapPin, LogOut, Phone } from "lucide-react";
+import { ArrowLeft, Clock, IndianRupee, Info, MapPin, LogOut } from "lucide-react";
 import { format } from "date-fns";
 
 export default function OrderHistory() {
   const [, navigate] = useLocation();
-  const currentMobileNumber = localStorage.getItem("currentMobileNumber");
+  const hasPlacedOrder = localStorage.getItem("hasPlacedOrder") === "true";
 
-  // Fetch orders for current mobile number and menu items
+  // Fetch both orders and menu items
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
-    queryKey: [`/api/orders/mobile/${currentMobileNumber}`],
-    enabled: !!currentMobileNumber,
+    queryKey: ["/api/orders"],
+    enabled: hasPlacedOrder, // Only fetch if user has placed an order
   });
 
   const { data: menuItems, isLoading: menuLoading } = useQuery({
     queryKey: ["/api/menu"],
+    enabled: hasPlacedOrder, // Only fetch if user has placed an order
   });
 
   const handleLogout = () => {
-    localStorage.removeItem("currentMobileNumber"); // Only remove the mobile number
+    localStorage.clear(); // Clear all storage including hasPlacedOrder
     navigate("/"); // Redirect to menu
   };
 
-  // Show access denied if no mobile number is found
-  if (!currentMobileNumber) {
+  // Redirect if no order has been placed
+  if (!hasPlacedOrder) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold mb-4">Please Place an Order First</h2>
+          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
           <p className="text-muted-foreground mb-6">
-            To view your order history, please place an order from our menu.
+            Please place an order first to view order history.
           </p>
           <Button onClick={() => navigate("/")} variant="default">
             Go to Menu
@@ -89,10 +90,6 @@ export default function OrderHistory() {
             <Badge variant="outline" className="text-base">
               {orders?.length || 0} Orders
             </Badge>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Phone className="h-4 w-4" />
-            <span>+91 {currentMobileNumber}</span>
           </div>
         </div>
 
@@ -156,6 +153,9 @@ export default function OrderHistory() {
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-4">
+                    <Badge variant="outline" className="text-base">
+                      {order.paymentStatus}
+                    </Badge>
                     <div className="text-xl font-bold text-green-600 flex items-center">
                       <IndianRupee className="h-5 w-5" />
                       {Math.round(order.total).toLocaleString('en-IN')}
@@ -170,7 +170,7 @@ export default function OrderHistory() {
             <div className="text-center py-16 bg-muted/50 rounded-lg border-2 border-dashed">
               <h3 className="text-lg font-semibold mb-2">No Orders Found</h3>
               <p className="text-muted-foreground mb-6">
-                You haven't placed any orders yet with this mobile number.
+                You haven't placed any orders yet. Start ordering from our delicious menu!
               </p>
               <Button onClick={() => navigate("/")} variant="default">
                 Browse Menu
