@@ -14,6 +14,7 @@ export default function NavBar() {
   const handleLogout = () => {
     localStorage.removeItem("verifiedMobile");
     localStorage.removeItem("verifiedEmail");
+    localStorage.removeItem("customerName");
     window.location.href = "/";
   };
 
