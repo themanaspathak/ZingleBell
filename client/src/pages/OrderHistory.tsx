@@ -151,10 +151,10 @@ export default function OrderHistory() {
                                 </Badge>
                               </div>
                               <div className="mt-1 space-y-1">
-                                {Object.entries(item.customizations).map(([category, choices]) => (
+                                {Object.entries(item.customizations || {}).map(([category, choices]) => (
                                   <div key={category} className="text-sm text-muted-foreground flex items-start gap-2">
                                     <Info className="h-3 w-3 mt-1 shrink-0" />
-                                    <span>{category}: {choices.join(", ")}</span>
+                                    <span>{category}: {Array.isArray(choices) ? choices.join(", ") : choices}</span>
                                   </div>
                                 ))}
                               </div>
