@@ -120,8 +120,9 @@ export default function MobileVerification() {
 
       dispatch({ type: "CLEAR_CART" });
 
-      // Store order flag in localStorage
-      localStorage.setItem("hasPlacedOrder", "true");
+      // Store mobile number and customer name in localStorage
+      localStorage.setItem("verifiedMobile", mobileNumber);
+      localStorage.setItem("customerName", customerName);
 
       navigate("/order-confirmed");
     } catch (error: any) {

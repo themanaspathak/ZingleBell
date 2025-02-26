@@ -10,40 +10,20 @@ import { format } from "date-fns";
 
 export default function OrderHistory() {
   const [, navigate] = useLocation();
-  const hasPlacedOrder = localStorage.getItem("hasPlacedOrder") === "true";
 
   // Fetch both orders and menu items
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
-    enabled: hasPlacedOrder, // Only fetch if user has placed an order
   });
 
   const { data: menuItems, isLoading: menuLoading } = useQuery({
     queryKey: ["/api/menu"],
-    enabled: hasPlacedOrder, // Only fetch if user has placed an order
   });
 
   const handleLogout = () => {
-    localStorage.clear(); // Clear all storage including hasPlacedOrder
-    navigate("/"); // Redirect to menu
+    localStorage.clear();
+    navigate("/");
   };
-
-  // Redirect if no order has been placed
-  if (!hasPlacedOrder) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">
-            Please place an order first to view order history.
-          </p>
-          <Button onClick={() => navigate("/")} variant="default">
-            Go to Menu
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   if (ordersLoading || menuLoading) {
     return <div className="container mx-auto px-4 py-8">Loading order history...</div>;
