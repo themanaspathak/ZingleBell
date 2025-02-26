@@ -3,41 +3,13 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import authRouter from "./routes/auth";
 import { ensureAdminUser } from "./services/auth";
-import { requireAuth } from "./middleware/auth";
-import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Initialize session middleware with PostgreSQL store
-const PgSession = connectPgSimple(session);
-app.use(
-  session({
-    store: new PgSession({
-      pool,
-      tableName: 'session',
-      createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax'
-    },
-  })
-);
-
-// Register auth routes first
+// Register auth routes
 app.use("/api", authRouter);
-
-// Protect /kitchen route
-app.use("/kitchen", requireAuth);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -81,7 +53,7 @@ app.use((req, res, next) => {
       const message = err.message || "Internal Server Error";
 
       res.status(status).json({ message });
-      console.error('Error:', err);
+      throw err;
     });
 
     if (app.get("env") === "development") {

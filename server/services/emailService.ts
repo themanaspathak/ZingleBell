@@ -1,50 +1,24 @@
 import nodemailer from 'nodemailer';
 
-// Configure email transport for Gmail
+// Configure email transport for general email notifications
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
-    user: process.env.GMAIL_EMAIL,
-    pass: process.env.GMAIL_APP_PASSWORD
+    user: process.env.EMAIL_USER || '',
+    pass: process.env.EMAIL_PASSWORD || ''
   }
 });
-
-export async function sendPasswordResetEmail(email: string, resetToken: string) {
-  try {
-    const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
-
-    const msg = {
-      to: email,
-      from: process.env.GMAIL_EMAIL,
-      subject: 'Password Reset Request',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Password Reset Request</h2>
-          <p style="color: #666;">You have requested to reset your password. Click the link below to set a new password:</p>
-          <p style="margin: 20px 0;">
-            <a href="${resetUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-              Reset Password
-            </a>
-          </p>
-          <p style="color: #666;">If you didn't request this, please ignore this email.</p>
-          <p style="color: #666;">This link will expire in 1 hour.</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(msg);
-    return { success: true, message: "Password reset email sent" };
-  } catch (error) {
-    console.error('Failed to send password reset email:', error);
-    return { success: false, message: "Failed to send password reset email" };
-  }
-}
 
 export async function sendOrderConfirmation(email: string, orderDetails: any) {
   try {
     const msg = {
       to: email,
-      from: process.env.GMAIL_EMAIL,
+      from: {
+        email: process.env.EMAIL_USER || 'noreply@restaurant.com',
+        name: 'Restaurant Management'
+      },
       subject: 'Order Confirmation',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
