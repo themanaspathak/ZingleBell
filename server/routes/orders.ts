@@ -16,6 +16,19 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get orders by mobile number
+router.get("/mobile/:mobileNumber", async (req, res) => {
+  try {
+    const { mobileNumber } = req.params;
+    const orders = await storage.getAllOrders();
+    const filteredOrders = orders.filter(order => order.mobileNumber === mobileNumber);
+    res.json(filteredOrders);
+  } catch (error) {
+    console.error("Failed to fetch orders by mobile number:", error);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
+
 // Export orders as CSV
 router.get("/export/csv", async (req, res) => {
   try {
@@ -30,7 +43,7 @@ router.get("/export/csv", async (req, res) => {
       'Status': order.status,
       'Payment Status': order.paymentStatus,
       'Total Amount': order.total,
-      'Items': order.items.map(item => 
+      'Items': order.items.map(item =>
         `${item.quantity}x Item #${item.menuItemId}`
       ).join(', '),
       'Created At': new Date(order.createdAt).toLocaleString(),
