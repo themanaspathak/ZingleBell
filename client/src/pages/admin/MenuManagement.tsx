@@ -114,15 +114,31 @@ export default function MenuManagement() {
       const endpoint = editingItem ? `/api/menu/${editingItem.id}` : "/api/menu";
       const method = editingItem ? "PATCH" : "POST";
 
-      const response = await apiRequest(endpoint, method, payload);
-      console.log("Submit response:", response);
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
 
-      await refetch();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save menu item");
+      }
+
+      const savedItem = await response.json();
+      console.log("Submit response:", savedItem);
+
+      // Invalidate and refetch menu items
       await queryClient.invalidateQueries({
         queryKey: ["/api/menu"],
         exact: true,
         refetchType: 'all'
       });
+
+      // Ensure the menu items are refetched
+      await refetch();
 
       toast({
         title: `Menu Item ${editingItem ? "Updated" : "Added"}`,
@@ -132,11 +148,11 @@ export default function MenuManagement() {
       setIsAddDialogOpen(false);
       setEditingItem(null);
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting menu item:", error);
       toast({
         title: "Error",
-        description: `Failed to ${editingItem ? "update" : "add"} menu item. Please try again.`,
+        description: error.message || `Failed to ${editingItem ? "update" : "add"} menu item. Please try again.`,
         variant: "destructive",
       });
     } finally {
