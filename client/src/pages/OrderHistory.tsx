@@ -11,18 +11,21 @@ import { format } from "date-fns";
 export default function OrderHistory() {
   const [, navigate] = useLocation();
 
-  const { data: orders, isLoading } = useQuery<Order[]>({
+  // Fetch both orders and menu items
+  const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
+  const { data: menuItems, isLoading: menuLoading } = useQuery({
+    queryKey: ["/api/menu"],
+  });
+
   const handleLogout = () => {
-    // Clear any stored data
     localStorage.clear();
-    // Redirect to home page
     navigate("/");
   };
 
-  if (isLoading) {
+  if (ordersLoading || menuLoading) {
     return <div className="container mx-auto px-4 py-8">Loading order history...</div>;
   }
 
@@ -95,26 +98,31 @@ export default function OrderHistory() {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="space-y-4">
-                  {order.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-start py-2 border-b last:border-0">
-                      <div>
-                        <p className="font-medium">
-                          {item.quantity}x Item #{item.menuItemId}
-                        </p>
-                        {Object.entries(item.customizations || {}).map(([category, choices]) => (
-                          <div key={category} className="text-sm text-muted-foreground ml-4 mt-1">
-                            • {category}: {Array.isArray(choices) ? choices.join(", ") : choices}
+                  {order.items.map((item, index) => {
+                    // Find the corresponding menu item
+                    const menuItem = menuItems?.find(m => m.id === item.menuItemId);
+
+                    return (
+                      <div key={index} className="flex justify-between items-start py-2 border-b last:border-0">
+                        <div>
+                          <p className="font-medium">
+                            {item.quantity}x {menuItem?.name || `Item #${item.menuItemId}`}
+                          </p>
+                          {Object.entries(item.customizations || {}).map(([category, choices]) => (
+                            <div key={category} className="text-sm text-muted-foreground ml-4 mt-1">
+                              • {category}: {Array.isArray(choices) ? choices.join(", ") : choices}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-right font-medium">
+                          <div className="flex items-center justify-end gap-1 text-green-600">
+                            <IndianRupee className="h-4 w-4" />
+                            {menuItem ? (menuItem.price * item.quantity) : 0}
                           </div>
-                        ))}
-                      </div>
-                      <div className="text-right font-medium">
-                        <div className="flex items-center justify-end gap-1 text-green-600">
-                          <IndianRupee className="h-4 w-4" />
-                          {item.price || 0}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {order.cookingInstructions && (
                     <div className="mt-4 p-3 bg-muted rounded-md">
                       <div className="flex items-center gap-2 mb-2">
