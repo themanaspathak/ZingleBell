@@ -57,7 +57,7 @@ export default function OrderPayment() {
   ) || [];
   const failedPaymentOrders = orders?.filter(order => order.paymentStatus === "failed") || [];
 
-  const OrderCard = ({ order, showActions = false }: { order: Order, showActions?: boolean }) => (
+  const OrderCard = ({ order }: { order: Order }) => (
     <div className="flex flex-col p-4 bg-muted/50 rounded-lg space-y-3">
       <div className="flex justify-between items-start">
         <div className="space-y-1">
@@ -81,23 +81,16 @@ export default function OrderPayment() {
         </div>
       </div>
 
-      {showActions && (
-        <div className="flex gap-2 mt-2">
+      {order.paymentStatus === 'pending' && (
+        <div className="flex justify-center mt-4">
           <Button 
             variant="default"
-            className="flex-1 bg-green-600 hover:bg-green-700"
+            size="lg"
+            className="w-2/3 bg-green-600 hover:bg-green-700 py-6 text-lg"
             onClick={() => handlePaymentStatusUpdate(order.id, 'paid')}
           >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
+            <CheckCircle2 className="h-5 w-5 mr-2" />
             Mark as Paid
-          </Button>
-          <Button 
-            variant="destructive"
-            className="flex-1"
-            onClick={() => handlePaymentStatusUpdate(order.id, 'failed')}
-          >
-            <XCircle className="h-4 w-4 mr-2" />
-            Mark as Failed
           </Button>
         </div>
       )}
@@ -139,7 +132,7 @@ export default function OrderPayment() {
               <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="space-y-4">
                   {pendingPaymentOrders.map((order) => (
-                    <OrderCard key={order.id} order={order} showActions />
+                    <OrderCard key={order.id} order={order} />
                   ))}
                   {pendingPaymentOrders.length === 0 && (
                     <p className="text-center text-muted-foreground py-4">
