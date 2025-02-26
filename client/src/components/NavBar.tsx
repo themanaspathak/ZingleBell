@@ -1,10 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ClipboardList } from "lucide-react";
+import { ShoppingCart, ClipboardList, History } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 
 export default function NavBar() {
-  const verifiedEmail = localStorage.getItem("verifiedEmail");
+  const mobileNumber = localStorage.getItem("mobileNumber");
   const [location] = useLocation();
   const { state } = useCart();
 
@@ -18,14 +18,14 @@ export default function NavBar() {
 
   return (
     <nav className="fixed top-0 right-0 p-4 flex gap-3 z-50 md:hidden bg-gradient-to-r from-white/80 to-white/90 backdrop-blur-sm rounded-bl-2xl shadow-lg">
-      {verifiedEmail && (
-        <Link href={`/orders/${encodeURIComponent(verifiedEmail)}`}>
+      {mobileNumber && (
+        <Link href={`/orders/${mobileNumber}`}>
           <Button 
             variant="outline" 
             size="icon" 
             className="rounded-full bg-white/80 hover:bg-white shadow-md hover:shadow-lg transition-all duration-300 border-gray-200"
           >
-            <ClipboardList className="h-5 w-5 text-gray-700" />
+            <History className="h-5 w-5 text-gray-700" />
           </Button>
         </Link>
       )}
