@@ -18,12 +18,29 @@ menuRouter.get("/", async (req, res) => {
 menuRouter.post("/", async (req, res) => {
   try {
     console.log("Creating new menu item:", req.body);
+
+    // Basic validation
+    if (!req.body.name || !req.body.price || !req.body.category) {
+      return res.status(400).json({ 
+        error: "Missing required fields: name, price, and category are required" 
+      });
+    }
+
     const item = await storage.createMenuItem(req.body);
     console.log("Created menu item:", item);
     res.json(item);
   } catch (error) {
     console.error("Error creating menu item:", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to create menu item" });
+    if (error instanceof Error) {
+      res.status(500).json({ 
+        error: error.message || "Failed to create menu item",
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: "Failed to create menu item" 
+      });
+    }
   }
 });
 

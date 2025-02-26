@@ -315,9 +315,17 @@ export class DatabaseStorage implements IStorage {
       // Remove any potential id from the input to let database generate it
       const { id, ...menuItemData } = menuItem as any;
 
+      // Ensure customizations is properly formatted
+      const sanitizedData = {
+        ...menuItemData,
+        customizations: menuItemData.customizations || { options: [] }
+      };
+
+      console.log("Sanitized menu item data:", sanitizedData);
+
       const [newItem] = await db
         .insert(menuItems)
-        .values(menuItemData)
+        .values(sanitizedData)
         .returning();
 
       if (!newItem) {
@@ -328,6 +336,9 @@ export class DatabaseStorage implements IStorage {
       return newItem;
     } catch (error) {
       console.error("Error in createMenuItem:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", error.message);
+      }
       throw error;
     }
   }
