@@ -1,3 +1,4 @@
+import logging
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
@@ -5,9 +6,29 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+import sys
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Initialize Flask app
 app = Flask(__name__)
+
+# Verify environment variables
+if not os.environ.get("SESSION_SECRET"):
+    logger.error("SESSION_SECRET environment variable is not set")
+    sys.exit(1)
+
+if not os.environ.get("DATABASE_URL"):
+    logger.error("DATABASE_URL environment variable is not set")
+    sys.exit(1)
+
+logger.info("Environment variables verified")
+
+# Configure Flask app
 app.secret_key = os.environ.get("SESSION_SECRET")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -23,21 +44,43 @@ class User(UserMixin):
 
     @staticmethod
     def get(user_id):
-        # Fetch user from database
-        result = db.select().from(users).where(eq(users.id, user_id))
-        user = result[0]
-        if user:
-            return User(user.id, user.email, user.password)
-        return None
+        try:
+            logger.debug(f"Fetching user with ID: {user_id}")
+            from psycopg2 import connect
+            conn = connect(os.environ.get("DATABASE_URL"))
+            cur = conn.cursor()
+            cur.execute("SELECT id, email, password FROM users WHERE id = %s", (user_id,))
+            user = cur.fetchone()
+            cur.close()
+            conn.close()
+            if user:
+                logger.debug(f"Found user with ID: {user_id}")
+                return User(user[0], user[1], user[2])
+            logger.debug(f"No user found with ID: {user_id}")
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching user: {e}")
+            return None
 
     @staticmethod
     def authenticate(email, password):
-        # Check user credentials
-        result = db.select().from(users).where(eq(users.email, email))
-        user = result[0]
-        if user and check_password_hash(user.password, password):
-            return User(user.id, user.email, user.password)
-        return None
+        try:
+            logger.debug(f"Authenticating user with email: {email}")
+            from psycopg2 import connect
+            conn = connect(os.environ.get("DATABASE_URL"))
+            cur = conn.cursor()
+            cur.execute("SELECT id, email, password FROM users WHERE email = %s", (email,))
+            user = cur.fetchone()
+            cur.close()
+            conn.close()
+            if user and check_password_hash(user[2], password):
+                logger.debug(f"Successfully authenticated user: {email}")
+                return User(user[0], user[1], user[2])
+            logger.debug(f"Authentication failed for user: {email}")
+            return None
+        except Exception as e:
+            logger.error(f"Error authenticating user: {e}")
+            return None
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -49,11 +92,15 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Log In')
 
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('kitchen'))
-    
+
     form = LoginForm()
     if form.validate_on_submit():
         user = User.authenticate(form.email.data, form.password.data)
@@ -78,5 +125,10 @@ def kitchen():
     return render_template('kitchen.html')
 
 if __name__ == '__main__':
-    # ALWAYS serve the app on port 5000
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    try:
+        logger.info("Starting Flask server...")
+        # ALWAYS serve the app on port 5000
+        app.run(host='0.0.0.0', port=5000, debug=True)
+    except Exception as e:
+        logger.error(f"Failed to start Flask server: {e}")
+        sys.exit(1)
