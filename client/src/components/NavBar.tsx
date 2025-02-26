@@ -27,7 +27,7 @@ export default function NavBar() {
     <nav className="fixed top-0 right-0 p-4 flex gap-3 z-50 md:hidden bg-gradient-to-r from-white/80 to-white/90 backdrop-blur-sm rounded-bl-2xl shadow-lg">
       {verifiedMobile && (
         <>
-          <Link href={`/orders/${encodeURIComponent(verifiedMobile)}`}>
+          <Link href="/order-history">
             <Button 
               variant="outline" 
               size="icon" 
