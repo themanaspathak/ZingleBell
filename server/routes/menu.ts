@@ -14,12 +14,25 @@ menuRouter.get("/", async (req, res) => {
   }
 });
 
+// POST new menu item
+menuRouter.post("/", async (req, res) => {
+  try {
+    console.log("Creating new menu item:", req.body);
+    const item = await storage.createMenuItem(req.body);
+    console.log("Created menu item:", item);
+    res.json(item);
+  } catch (error) {
+    console.error("Error creating menu item:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to create menu item" });
+  }
+});
+
 // GET single menu item
 menuRouter.get("/:id", async (req, res) => {
   try {
     const item = await storage.getMenuItem(parseInt(req.params.id));
     if (!item) {
-      res.status(404).json({ message: "Item not found" });
+      res.status(404).json({ error: "Item not found" });
       return;
     }
     res.json(item);

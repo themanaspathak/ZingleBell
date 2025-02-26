@@ -10,6 +10,7 @@ import { eq, desc } from "drizzle-orm";
 export interface IStorage {
   getMenuItems(): Promise<MenuItem[]>;
   getMenuItem(id: number): Promise<MenuItem | undefined>;
+  createMenuItem(menuItem: Omit<MenuItem, 'id'>): Promise<MenuItem>;
   createOrder(order: InsertOrder): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
   getUser(email: string): Promise<User | undefined>;
@@ -304,6 +305,26 @@ export class DatabaseStorage implements IStorage {
       return updatedOrder;
     } catch (error) {
       console.error("Error updating order payment status:", error);
+      throw error;
+    }
+  }
+  async createMenuItem(menuItem: Omit<MenuItem, 'id'>): Promise<MenuItem> {
+    try {
+      console.log("Creating new menu item:", menuItem);
+
+      const [newItem] = await db
+        .insert(menuItems)
+        .values(menuItem)
+        .returning();
+
+      if (!newItem) {
+        throw new Error("Failed to create menu item");
+      }
+
+      console.log("Successfully created menu item:", newItem);
+      return newItem;
+    } catch (error) {
+      console.error("Error in createMenuItem:", error);
       throw error;
     }
   }
