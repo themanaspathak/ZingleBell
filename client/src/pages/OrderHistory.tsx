@@ -5,7 +5,7 @@ import { Order } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, IndianRupee, Info, MapPin, LogOut } from "lucide-react";
+import { ArrowLeft, Clock, IndianRupee, Info, MapPin, LogOut, Phone } from "lucide-react";
 import { format } from "date-fns";
 
 export default function OrderHistory() {
@@ -92,6 +92,10 @@ export default function OrderHistory() {
               {orders?.length || 0} Orders
             </Badge>
           </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Phone className="h-4 w-4" />
+            <span>+91 {currentMobileNumber}</span>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -154,9 +158,6 @@ export default function OrderHistory() {
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-4">
-                    <Badge variant="outline" className="text-base">
-                      {order.paymentStatus}
-                    </Badge>
                     <div className="text-xl font-bold text-green-600 flex items-center">
                       <IndianRupee className="h-5 w-5" />
                       {Math.round(order.total).toLocaleString('en-IN')}
@@ -171,7 +172,7 @@ export default function OrderHistory() {
             <div className="text-center py-16 bg-muted/50 rounded-lg border-2 border-dashed">
               <h3 className="text-lg font-semibold mb-2">No Orders Found</h3>
               <p className="text-muted-foreground mb-6">
-                You haven't placed any orders yet. Start ordering from our delicious menu!
+                You haven't placed any orders yet with this mobile number.
               </p>
               <Button onClick={() => navigate("/")} variant="default">
                 Browse Menu

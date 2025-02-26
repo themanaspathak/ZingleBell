@@ -47,7 +47,7 @@ export default function MobileVerification() {
           quantity: item.quantity,
           customizations: item.customizations || {}
         })),
-        status: "in progress",
+        status: "pending",
         cookingInstructions: state.cookingInstructions || "",
         total: state.items.reduce(
           (sum, item) => sum + item.menuItem.price * item.quantity,
@@ -64,7 +64,7 @@ export default function MobileVerification() {
 
       dispatch({ type: "CLEAR_CART" });
 
-      // Store order flag and mobile number in localStorage
+      // Store order flag and current mobile number in localStorage
       localStorage.setItem("hasPlacedOrder", "true");
       localStorage.setItem("currentMobileNumber", mobileNumber);
 
