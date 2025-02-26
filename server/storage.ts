@@ -312,9 +312,12 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Creating new menu item:", menuItem);
 
+      // Remove any potential id from the input to let database generate it
+      const { id, ...menuItemData } = menuItem as any;
+
       const [newItem] = await db
         .insert(menuItems)
-        .values(menuItem)
+        .values(menuItemData)
         .returning();
 
       if (!newItem) {
