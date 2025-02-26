@@ -11,6 +11,7 @@ app.use(express.urlencoded({ extended: false }));
 // Register auth routes
 app.use("/api", authRouter);
 
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -43,28 +44,42 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    log("Starting server initialization...");
+
     // Create default admin user
-    await ensureAdminUser("admin@restaurant.com", "admin123");
+    try {
+      await ensureAdminUser("admin@restaurant.com", "admin123");
+      log("Admin user check completed");
+    } catch (error) {
+      log(`Error ensuring admin user: ${error}`);
+      throw error;
+    }
 
+    log("Registering routes...");
     const server = await registerRoutes(app);
+    log("Routes registered successfully");
 
+    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-
+      log(`Error caught in middleware: ${err.message}`);
       res.status(status).json({ message });
-      throw err;
     });
 
     if (app.get("env") === "development") {
+      log("Setting up Vite for development...");
       await setupVite(app, server);
+      log("Vite setup completed");
     } else {
+      log("Setting up static file serving...");
       serveStatic(app);
+      log("Static file serving setup completed");
     }
 
     const PORT = process.env.PORT || 5000;
     const startServer = () => {
-      server.listen(PORT, () => {
+      server.listen(PORT, "0.0.0.0", () => {
         log(`Server running in ${app.get("env")} mode on port ${PORT}`);
       });
 
@@ -76,6 +91,7 @@ app.use((req, res, next) => {
             startServer();
           }, 5000);
         } else {
+          log(`Server error: ${error.message}`);
           console.error('Server error:', error);
           process.exit(1);
         }
@@ -83,7 +99,8 @@ app.use((req, res, next) => {
     };
 
     startServer();
-  } catch (error) {
+  } catch (error: any) {
+    log(`Fatal startup error: ${error.message}`);
     console.error('Startup error:', error);
     process.exit(1);
   }
