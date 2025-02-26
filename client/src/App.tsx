@@ -11,6 +11,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 import Kitchen from "@/pages/Kitchen";
 import MenuManagement from "@/pages/admin/MenuManagement";
 import OrderPayment from "@/pages/admin/OrderPayment";
+import Orders from "@/pages/admin/Orders";
 import OrderConfirmed from "@/pages/OrderConfirmed";
 import OrderHistory from "@/pages/OrderHistory";
 import { CartProvider } from "@/contexts/CartContext";
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/admin/login" component={AdminLogin} />
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/menu" component={MenuManagement} />
+        <Route path="/admin/orders" component={Orders} />
         <Route path="/admin/order-payment" component={OrderPayment} />
 
         {/* 404 Route */}

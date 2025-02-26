@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Menu as MenuIcon,
   CreditCard,
+  ClipboardList,
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,11 @@ const sidebarItems = [
     icon: LayoutDashboard,
     label: "Dashboard",
     href: "/admin",
+  },
+  {
+    icon: ClipboardList,
+    label: "Orders",
+    href: "/admin/orders",
   },
   {
     icon: MenuIcon,
