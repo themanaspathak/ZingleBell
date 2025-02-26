@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layouts/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Order } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Clock, Calendar, FilterX, Menu, User, MapPin } from "lucide-react";
+import { Clock, Calendar, FilterX, Menu, User, MapPin, Download } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -14,9 +15,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Orders() {
+  const { toast } = useToast();
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -40,6 +42,35 @@ export default function Orders() {
   const activeOrders = filteredOrders.filter(order => order.status === 'in progress') || [];
   const completedOrders = filteredOrders.filter(order => order.status === 'completed') || [];
   const cancelledOrders = filteredOrders.filter(order => order.status === 'cancelled') || [];
+
+  const handleExportCSV = async () => {
+    try {
+      const response = await fetch('/api/orders/export/csv');
+      if (!response.ok) throw new Error('Failed to export orders');
+
+      // Create a download link for the CSV file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export Successful",
+        description: "Orders have been exported to CSV",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export orders to CSV",
+        variant: "destructive",
+      });
+    }
+  };
 
   const OrderCard = ({ order }: { order: Order }) => {
     const orderDate = new Date(order.createdAt);
@@ -85,13 +116,6 @@ export default function Orders() {
               </Badge>
             </div>
           </div>
-          <div className="mt-4 space-y-2">
-            {order.items.map((item, index) => (
-              <div key={index} className="text-sm">
-                {item.quantity}x {item.menuItemId}
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
     );
@@ -102,8 +126,17 @@ export default function Orders() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Orders</h1>
-          
+
           <div className="flex items-center gap-3">
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export to CSV
+            </Button>
+
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Date Filter:</span>
