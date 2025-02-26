@@ -21,7 +21,7 @@ const OrderConfirmed: React.FC = () => {
               Place Another Order
             </Button>
           </Link>
-          <Link href={`/orders/${encodeURIComponent(localStorage.getItem("verifiedMobile") || "")}`}>
+          <Link href="/order-history">
             <Button variant="outline" className="w-full">
               View Order History
             </Button>

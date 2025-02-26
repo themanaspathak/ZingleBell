@@ -5,35 +5,15 @@ import { Order } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, IndianRupee, Info, MapPin, LogOut } from "lucide-react";
+import { ArrowLeft, Clock, IndianRupee, Info, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
 export default function OrderHistory() {
   const [, navigate] = useLocation();
-  const mobileNumber = localStorage.getItem("verifiedMobile");
-
-  // Add a console.log to debug the mobile number
-  console.log("Mobile number from localStorage:", mobileNumber);
 
   const { data: orders, isLoading } = useQuery<Order[]>({
-    queryKey: [`/api/orders/mobile/${mobileNumber}`],
-    enabled: !!mobileNumber,
+    queryKey: ["/api/orders"],
   });
-
-  const handleLogout = () => {
-    localStorage.removeItem("verifiedMobile");
-    localStorage.removeItem("customerName");
-    navigate("/");
-  };
-
-  if (!mobileNumber) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-lg text-center">
-        <p className="mb-4">Please verify your mobile number to view order history</p>
-        <Button onClick={() => navigate("/")}>Go to Menu</Button>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8">Loading order history...</div>;
@@ -65,24 +45,12 @@ export default function OrderHistory() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Menu
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-              size="sm"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
           </div>
           <div className="flex items-center gap-3 mb-3">
             <h1 className="text-3xl font-bold tracking-tight">Order History</h1>
             <Badge variant="outline" className="text-base">
               {orders?.length || 0} Orders
             </Badge>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            Mobile: +91 {mobileNumber}
           </div>
         </div>
 
