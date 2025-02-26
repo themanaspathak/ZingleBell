@@ -9,6 +9,7 @@ router.get("/mobile/:mobileNumber", async (req, res) => {
   try {
     const { mobileNumber } = req.params;
     const orders = await storage.getAllOrders();
+    // Filter orders by mobile number
     const filteredOrders = orders.filter(order => order.mobileNumber === mobileNumber);
     res.json(filteredOrders);
   } catch (error) {
@@ -26,17 +27,6 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Failed to create order:", error);
     res.status(400).json({ error: "Failed to create order" });
-  }
-});
-
-// Get all orders
-router.get("/", async (req, res) => {
-  try {
-    const orders = await storage.getAllOrders();
-    res.json(orders);
-  } catch (error) {
-    console.error("Failed to fetch orders:", error);
-    res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
 
@@ -73,28 +63,6 @@ router.post("/:id/status", async (req, res) => {
   } catch (error) {
     console.error("Failed to update order status:", error);
     res.status(500).json({ error: "Failed to update order status" });
-  }
-});
-
-// Update order payment status
-router.post("/:id/payment-status", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!['paid', 'failed', 'pending'].includes(status)) {
-      return res.status(400).json({ error: "Invalid payment status" });
-    }
-
-    const order = await storage.updateOrderPaymentStatus(parseInt(id), status);
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-
-    res.json(order);
-  } catch (error) {
-    console.error("Failed to update payment status:", error);
-    res.status(500).json({ error: "Failed to update payment status" });
   }
 });
 

@@ -10,33 +10,31 @@ import { format } from "date-fns";
 
 export default function OrderHistory() {
   const [, navigate] = useLocation();
-  const hasPlacedOrder = localStorage.getItem("hasPlacedOrder") === "true";
   const currentMobileNumber = localStorage.getItem("currentMobileNumber");
 
   // Fetch orders for current mobile number and menu items
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: [`/api/orders/mobile/${currentMobileNumber}`],
-    enabled: hasPlacedOrder && !!currentMobileNumber,
+    enabled: !!currentMobileNumber,
   });
 
   const { data: menuItems, isLoading: menuLoading } = useQuery({
     queryKey: ["/api/menu"],
-    enabled: hasPlacedOrder,
   });
 
   const handleLogout = () => {
-    localStorage.clear(); // Clear all storage including hasPlacedOrder and currentMobileNumber
+    localStorage.clear(); // Clear all storage including currentMobileNumber
     navigate("/"); // Redirect to menu
   };
 
-  // Redirect if no order has been placed
-  if (!hasPlacedOrder || !currentMobileNumber) {
+  // Show access denied if no mobile number is found
+  if (!currentMobileNumber) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+          <h2 className="text-2xl font-bold mb-4">Please Place an Order First</h2>
           <p className="text-muted-foreground mb-6">
-            Please place an order first to view order history.
+            To view your order history, please place an order from our menu.
           </p>
           <Button onClick={() => navigate("/")} variant="default">
             Go to Menu
