@@ -19,19 +19,6 @@ export default function MobileVerification() {
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
-  // Check for existing authentication
-  useEffect(() => {
-    const existingMobile = localStorage.getItem("verifiedMobile");
-    const existingName = localStorage.getItem("customerName");
-
-    if (existingMobile && existingName) {
-      setMobileNumber(existingMobile);
-      setCustomerName(existingName);
-      // If already verified, proceed with order placement
-      placeOrder(existingMobile, existingName);
-    }
-  }, []);
-
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (resendTimer > 0) {
@@ -84,7 +71,7 @@ export default function MobileVerification() {
         description: `Please check your mobile (+91 ${formatPhoneNumber(mobileNumber)}) for OTP`,
       });
       setShowOtpInput(true);
-      setResendTimer(30);
+      setResendTimer(30); // Start 30-second countdown
     } catch (error: any) {
       console.error("Failed to send OTP:", error);
       toast({
@@ -97,16 +84,16 @@ export default function MobileVerification() {
     }
   };
 
-  const placeOrder = async (mobile: string, name: string) => {
+  const placeOrder = async () => {
     try {
-      const guestEmail = `${mobile}@guest.restaurant.com`;
+      const guestEmail = `${mobileNumber}@guest.restaurant.com`;
       console.log("Creating guest order with email:", guestEmail);
 
       const orderData = {
         tableNumber: state.tableNumber || 1,
         userEmail: guestEmail,
-        mobileNumber: mobile,
-        customerName: name,
+        mobileNumber: mobileNumber,
+        customerName: customerName,
         items: state.items.map(item => ({
           menuItemId: item.menuItem.id,
           quantity: item.quantity,
@@ -131,11 +118,11 @@ export default function MobileVerification() {
         throw new Error(errorData.message || "Failed to create order");
       }
 
-      // Store authentication info after successful order
-      localStorage.setItem("verifiedMobile", mobile);
-      localStorage.setItem("customerName", name);
-
       dispatch({ type: "CLEAR_CART" });
+
+      localStorage.setItem("verifiedMobile", mobileNumber);
+      localStorage.setItem("customerName", customerName);
+
       navigate("/order-confirmed");
     } catch (error: any) {
       console.error("Failed to place order:", error);
@@ -178,7 +165,7 @@ export default function MobileVerification() {
         description: "Proceeding to place your order",
       });
 
-      await placeOrder(mobileNumber, customerName);
+      await placeOrder();
     } catch (error: any) {
       console.error("Verification failed:", error);
       toast({
@@ -186,7 +173,7 @@ export default function MobileVerification() {
         description: error.message || "Invalid OTP. Please try again.",
         variant: "destructive",
       });
-      setOtp("");
+      setOtp(""); // Clear the OTP input on failure
     } finally {
       setIsLoading(false);
     }
@@ -199,22 +186,6 @@ export default function MobileVerification() {
     }
     return digits;
   };
-
-  // If already verified, show loading state
-  if (localStorage.getItem("verifiedMobile") && localStorage.getItem("customerName")) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-lg border-0 bg-card/95 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent animate-spin rounded-full" />
-              <p className="text-center text-muted-foreground">Processing your order...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
@@ -328,6 +299,8 @@ export default function MobileVerification() {
                       onClick={() => {
                         setShowOtpInput(false);
                         setOtp("");
+                        setCustomerName("");
+                        setMobileNumber("");
                       }}
                       disabled={isLoading}
                     >
