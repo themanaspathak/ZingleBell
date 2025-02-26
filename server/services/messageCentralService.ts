@@ -3,8 +3,8 @@ import request from 'request';
 // Store verification IDs temporarily (in production, use Redis or similar)
 const verificationStore = new Map<string, { verificationId: string; expires: Date }>();
 
-// Mock OTP for development
-const MOCK_OTP = '123456';
+// Mock OTP for development - using 4 digits to match UI expectations
+const MOCK_OTP = '1234';
 
 export async function sendOTP(mobileNumber: string): Promise<{
   success: boolean;
@@ -103,9 +103,11 @@ export async function verifyOTP(mobileNumber: string, otp: string): Promise<{
   // If no auth token is present, use mock implementation
   if (!process.env.MESSAGE_CENTRAL_AUTH_TOKEN) {
     console.log('⚠️ Running in development mode - using mock OTP verification');
+    console.log('📱 Verifying OTP:', { mobileNumber, receivedOtp: otp, expectedOtp: MOCK_OTP });
 
     const storedData = verificationStore.get(mobileNumber);
     if (!storedData) {
+      console.log('❌ No verification session found for', mobileNumber);
       return {
         success: false,
         message: "Verification session expired. Please request a new OTP.",
@@ -113,6 +115,7 @@ export async function verifyOTP(mobileNumber: string, otp: string): Promise<{
     }
 
     const isValid = otp === MOCK_OTP;
+    console.log(`${isValid ? '✅' : '❌'} OTP verification ${isValid ? 'successful' : 'failed'}`);
     verificationStore.delete(mobileNumber); // Clear verification data after attempt
 
     return {

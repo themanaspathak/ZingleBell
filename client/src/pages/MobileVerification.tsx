@@ -63,7 +63,7 @@ export default function MobileVerification() {
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Failed to send OTP");
       }
 
       toast({
@@ -73,6 +73,7 @@ export default function MobileVerification() {
       setShowOtpInput(true);
       setResendTimer(30); // Start 30-second countdown
     } catch (error: any) {
+      console.error("Failed to send OTP:", error);
       toast({
         title: "Failed to send OTP",
         description: error.message || "Please try again later",
@@ -156,7 +157,7 @@ export default function MobileVerification() {
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Invalid OTP");
       }
 
       toast({
@@ -166,11 +167,13 @@ export default function MobileVerification() {
 
       await placeOrder();
     } catch (error: any) {
+      console.error("Verification failed:", error);
       toast({
         title: "Verification Failed",
         description: error.message || "Invalid OTP. Please try again.",
         variant: "destructive",
       });
+      setOtp(""); // Clear the OTP input on failure
     } finally {
       setIsLoading(false);
     }
