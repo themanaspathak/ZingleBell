@@ -4,7 +4,6 @@ import { ShoppingCart, ScrollText } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 
 export default function NavBar() {
-  const verifiedEmail = localStorage.getItem("verifiedEmail");
   const [location] = useLocation();
   const { state } = useCart();
 
@@ -18,7 +17,7 @@ export default function NavBar() {
 
   return (
     <nav className="fixed top-0 right-0 p-4 flex gap-3 z-50 md:hidden bg-gradient-to-r from-white/80 to-white/90 backdrop-blur-sm rounded-bl-2xl shadow-lg">
-      <Link href={verifiedEmail ? `/orders/${encodeURIComponent(verifiedEmail)}` : "/verify"}>
+      <Link href="/order-history">
         <Button 
           variant="outline" 
           size="icon" 
