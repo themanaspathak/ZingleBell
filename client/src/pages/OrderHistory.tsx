@@ -5,7 +5,7 @@ import { Order, MenuItem } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, IndianRupee, User, Phone, Info, MapPin, CreditCard } from "lucide-react";
+import { ArrowLeft, Clock, IndianRupee, User, Phone, Info, MapPin, CreditCard, LogOut } from "lucide-react";
 
 export default function OrderHistory() {
   const [, navigate] = useLocation();
@@ -19,6 +19,11 @@ export default function OrderHistory() {
   const { data: menuItems, isLoading: menuLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu"],
   });
+
+  const handleLogout = () => {
+    localStorage.removeItem("verifiedMobile");
+    navigate("/");
+  };
 
   if (!mobileNumber) {
     return (
@@ -61,14 +66,25 @@ export default function OrderHistory() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="mb-8 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 py-4 px-4 rounded-lg shadow-sm">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/")}
-            className="mb-4 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Menu
-          </Button>
+          <div className="flex justify-between items-center mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/")}
+              className="-ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Menu
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
           <div className="flex items-center gap-3 mb-3">
             <h1 className="text-3xl font-bold tracking-tight">Order History</h1>
             <Badge variant="outline" className="text-base">
