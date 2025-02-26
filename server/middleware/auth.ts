@@ -4,18 +4,34 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
+  try {
+    if (!req.session) {
+      console.error('Session middleware not initialized');
+      return res.status(500).json({ message: "Internal server error" });
+    }
+
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ message: "Internal server error" });
   }
-  next();
 }
 
 export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-
   try {
+    if (!req.session) {
+      console.error('Session middleware not initialized');
+      return res.status(500).json({ message: "Internal server error" });
+    }
+
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     const result = await db.select().from(users).where(eq(users.id, req.session.userId));
     const user = result[0];
 
@@ -25,7 +41,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 
     next();
   } catch (error) {
-    console.error("Auth middleware error:", error);
+    console.error('Auth middleware error:', error);
     res.status(500).json({ message: "Internal server error" });
   }
 }

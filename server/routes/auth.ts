@@ -3,40 +3,16 @@ import { authenticateUser, hashPassword, createPasswordResetToken, resetPassword
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import session from "express-session";
 import { z } from "zod";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "../db";
 import { requireAuth, requireAdmin } from "../middleware/auth";
 
 const router = Router();
-const PgSession = connectPgSimple(session);
 
 declare module "express-session" {
   interface SessionData {
     userId: number;
   }
 }
-
-// Initialize session middleware with PostgreSQL store
-router.use(
-  session({
-    store: new PgSession({
-      pool,
-      tableName: 'session',
-      createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax'
-    },
-  })
-);
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -88,7 +64,6 @@ router.get("/kitchen", requireAuth, (req, res) => {
   res.json({ message: "Kitchen access granted" });
 });
 
-// Rest of the existing routes...
 router.post("/admin/login", async (req, res) => {
   console.log("Login attempt for email:", req.body.email);
 
