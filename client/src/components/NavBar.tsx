@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ClipboardList } from "lucide-react";
+import { ShoppingCart, ScrollText } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 
 export default function NavBar() {
@@ -25,7 +25,7 @@ export default function NavBar() {
             size="icon" 
             className="relative rounded-full bg-white/80 hover:bg-white shadow-md hover:shadow-lg transition-all duration-300 border-gray-200 group"
           >
-            <ClipboardList className="h-5 w-5 text-gray-700 group-hover:scale-110 transition-transform duration-200" />
+            <ScrollText className="h-5 w-5 text-gray-700 group-hover:scale-110 transition-transform duration-200" />
             <span className="absolute inset-0 bg-primary/5 rounded-full scale-0 group-hover:scale-100 transition-transform duration-200" />
           </Button>
         </Link>
