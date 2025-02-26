@@ -13,13 +13,25 @@ import { format } from "date-fns";
 export default function OrderPayment() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch orders with 5-second polling interval for real-time updates
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+    refetchInterval: 5000, // Poll every 5 seconds
   });
 
   const handlePaymentStatusUpdate = async (orderId: number, status: 'paid' | 'failed') => {
     try {
-      await apiRequest(`/api/orders/${orderId}/payment-status`, 'POST', { status });
+      const response = await apiRequest(
+        `/api/orders/${orderId}/payment-status`, 
+        'POST', 
+        { status }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update payment status");
+      }
 
       await queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
 
@@ -28,11 +40,11 @@ export default function OrderPayment() {
         description: `Order #${orderId} payment has been marked as ${status}`,
         variant: status === 'paid' ? 'default' : 'destructive',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update payment status:', error);
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update payment status',
+        description: error.message || "Failed to update payment status",
         variant: 'destructive',
       });
     }
@@ -41,7 +53,7 @@ export default function OrderPayment() {
   // Group orders by payment status
   const paidOrders = orders?.filter(order => order.paymentStatus === "paid") || [];
   const pendingPaymentOrders = orders?.filter(order => 
-    order.paymentStatus === "pending" || !order.paymentStatus
+    order.paymentStatus === "pending" && order.status !== "cancelled"
   ) || [];
   const failedPaymentOrders = orders?.filter(order => order.paymentStatus === "failed") || [];
 
@@ -71,7 +83,7 @@ export default function OrderPayment() {
 
       {showActions && (
         <div className="flex gap-2 mt-2">
-          <Button
+          <Button 
             variant="default"
             className="flex-1 bg-green-600 hover:bg-green-700"
             onClick={() => handlePaymentStatusUpdate(order.id, 'paid')}
@@ -79,7 +91,7 @@ export default function OrderPayment() {
             <CheckCircle2 className="h-4 w-4 mr-2" />
             Mark as Paid
           </Button>
-          <Button
+          <Button 
             variant="destructive"
             className="flex-1"
             onClick={() => handlePaymentStatusUpdate(order.id, 'failed')}

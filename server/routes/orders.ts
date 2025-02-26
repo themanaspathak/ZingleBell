@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
 router.get("/export/csv", async (req, res) => {
   try {
     const orders = await storage.getAllOrders();
-    
+
     // Transform orders into a format suitable for CSV
     const csvData = orders.map(order => ({
       'Order ID': order.id,
@@ -55,7 +55,7 @@ router.get("/export/csv", async (req, res) => {
     // Set headers for file download
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=orders-${Date.now()}.csv`);
-    
+
     res.send(csvString);
   } catch (error) {
     console.error("Failed to export orders:", error);
@@ -72,6 +72,64 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Failed to create order:", error);
     res.status(400).json({ error: "Failed to create order" });
+  }
+});
+
+// Update order payment status
+router.post("/:id/payment-status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['paid', 'failed', 'pending'].includes(status)) {
+      return res.status(400).json({ error: "Invalid payment status" });
+    }
+
+    const order = await storage.updateOrderPaymentStatus(parseInt(id), status);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error("Failed to update payment status:", error);
+    res.status(500).json({ error: "Failed to update payment status" });
+  }
+});
+
+// Get single order
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await storage.getOrder(parseInt(req.params.id));
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    res.json(order);
+  } catch (error) {
+    console.error("Failed to fetch order:", error);
+    res.status(500).json({ error: "Failed to fetch order" });
+  }
+});
+
+// Update order status
+router.post("/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['in progress', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: "Invalid order status" });
+    }
+
+    const order = await storage.updateOrderStatus(parseInt(id), status);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error("Failed to update order status:", error);
+    res.status(500).json({ error: "Failed to update order status" });
   }
 });
 

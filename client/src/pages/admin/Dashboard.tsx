@@ -23,7 +23,10 @@ export default function AdminDashboard() {
     return orderDate.toDateString() === today.toDateString();
   }) || [];
 
-  const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
+  // Only calculate revenue from non-cancelled orders
+  const todayRevenue = todayOrders
+    .filter(order => order.status !== 'cancelled')
+    .reduce((sum, order) => sum + order.total, 0);
 
   const yesterdayOrders = orders?.filter(order => {
     const orderDate = new Date(order.createdAt);
@@ -32,7 +35,11 @@ export default function AdminDashboard() {
     return orderDate.toDateString() === yesterday.toDateString();
   }) || [];
 
-  const yesterdayRevenue = yesterdayOrders.reduce((sum, order) => sum + order.total, 0);
+  // Only calculate yesterday's revenue from non-cancelled orders
+  const yesterdayRevenue = yesterdayOrders
+    .filter(order => order.status !== 'cancelled')
+    .reduce((sum, order) => sum + order.total, 0);
+
   const revenueChange = yesterdayRevenue === 0 ? 0 : ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
 
   const stats = [
@@ -111,14 +118,11 @@ export default function AdminDashboard() {
                         Table {order.tableNumber}
                       </p>
                       <div className="mt-2">
-                        {order.items.map((item, index) => {
-                          const menuItem = item.menuItem;
-                          return (
-                            <p key={index} className="text-sm">
-                              {item.quantity}x {menuItem?.name || `Item ${item.menuItemId}`}
-                            </p>
-                          );
-                        })}
+                        {order.items.map((item, index) => (
+                          <p key={index} className="text-sm">
+                            {item.quantity}x {item.menuItem?.name || `Item ${item.menuItemId}`}
+                          </p>
+                        ))}
                       </div>
                     </div>
                     <div className="text-right">
