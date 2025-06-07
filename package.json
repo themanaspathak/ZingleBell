@@ -108,3 +108,8 @@
     "bufferutil": "^4.0.8"
   }
 }
+
+"scripts": {
+  "dev": "tsx server/index.ts",
+  "start": "node server/index.js"   // or your compiled JS entry
+}
