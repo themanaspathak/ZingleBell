@@ -4,6 +4,9 @@ import { setupVite, serveStatic, log } from "./vite";
 import authRouter from "./routes/auth";
 import { ensureAdminUser } from "./services/auth";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
