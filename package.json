@@ -109,9 +109,6 @@
   }
 }
 
-"scripts": {
-  "dev": "tsx server/index.ts",
-  "start": "node server/index.js"
-}
+
 
 
