@@ -1,8 +1,0 @@
-{
-  "schema": "./shared/schema.ts",
-  "out": "./migrations",
-  "driver": "pg",
-  "dbCredentials": {
-    "connectionString": "env:DATABASE_URL"
-  }
-}
